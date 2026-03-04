@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s \"c:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\src\")",
+      "Bash(npx next build:*)",
+      "Bash(dir:*)",
+      "Bash(del \"\\\\?\\\\C:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\nul\")",
+      "Bash(cmd.exe /c \"del \\\\?\\\\C:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\nul\")",
+      "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\nul \\(echo EXISTS\\) else \\(echo DELETED\\)\")",
+      "Bash(cmd.exe:*)"
+    ]
+  }
+}
