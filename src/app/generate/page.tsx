@@ -3,31 +3,70 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { UploadCloud, Image as ImageIcon, X, Sparkles, Wand2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
-// Dados de inspiração que o usuário quer ver para não ficar "perdido"
 const INSPIRATION_IMAGES = [
     {
+        id: 21,
+        url: "/generated/elden_ring_real.png",
+        prompt: "Buat saya memakai the heavy, battle-worn armor of a Tarnished Knight from Elden Ring. Buatkan pose khas nya holding a massive, intricately textured greatsword. Characterized by stark cinematic lighting and intense contrast, featuring volumetric fog and an ethereal atmosphere. Captured with a slightly low, upward-facing angle that dramatizes the subject's posture. The background is a glowing, gloomy mystical landscape dominated by the massive golden Erdtree in the distance, creating a bold visual clash between the dark fantasy foreground and the holy light. Lighting is tightly directional, casting warm golden highlights on the brushed steel armor while plunging the other side into velvety pitch shadow. The subject's expression is resolute and unreadable, suggesting quiet defiance. Minimal retouching preserves sweat, dirt, and skin imperfections for hyper-realism. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail dan realistis dengan tekstur AAA game graphics."
+    },
+    {
+        id: 22,
+        url: "/generated/jjk_real.png",
+        prompt: "Buat saya memakai the sleek, dark navy Tokyo Jujutsu High uniform from Jujutsu Kaisen. Buatkan pose khas nya charging powerful cursed energy. Characterized by high-octane cinematic lighting and intense neon contrast. Captured with a dynamic Dutch angle that dramatizes the subject's face. The background is a ruined, post-apocalyptic Tokyo street at night, creating a bold visual clash with the glowing bright blue cursed energy wrapping around the fists. Lighting is tightly directional, casting erratic, vibrant cyan highlights on one side of the face while plunging the other into shadow, emphasizing bone structure with architectural precision. The subject's expression is fierce yet focused. The uniform fabric is richly defined. Minimal retouching preserves skin texture and subtle grit. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail dan realistis."
+    },
+    {
+        id: 23,
+        url: "/generated/re_requiem_real.png",
+        prompt: "Buat saya memakai rugged, dirt-covered survival gear suitable for a survival horror protagonist, inspired by Resident Evil. Buatkan pose khas nya holding a detailed tactical shotgun, characterized by stark cinematic lighting. Captured with a tight, claustrophobic close-up angle that dramatizes the subject's jawline and tense shoulders. The background is a pitched-black, gothic castle hallway filled with ominous volumetric fog. Lighting is strictly from a single, harsh flashlight source, casting stark, blinding highlights on one side of the face while plunging the rest into velvety shadow, emphasizing bone structure. The subject's expression is intense, sweat-beaded forehead, jaw clenched, suggesting extreme hyper-vigilance. The rugged clothing is richly defined with grime. Minimal retouching preserves skin texture and extreme imperfections. Make the face and hairstyle as similar as possible. Buat pencahayaan dan tekstur sangat realistis layaknya game next-gen."
+    },
+    {
+        id: 24,
+        url: "/generated/hells_paradise_real.png",
+        prompt: "Buat saya memakai traditional yet highly tactical kunoichi shinobi garb from Hell's Paradise, including delicate but lethal twin curved blades. Buatkan pose khas nya characterized by stark cinematic lighting and lush environmental contrast. Captured with a dynamic framing that dramatizes the intense gaze. The composition evokes serene lethality. The background is a mysterious island overgrown with exotic blooming lotus flowers in surreal magenta and turquoise hues, creating a bold visual clash with the model's dark stealth wardrobe. Lighting is soft, dappled, and tightly directional, piercing through a thick canopy to cast warm golden highlights on the skin and metallic blades. The subject's expression is unreadable and cool-toned. Minimal retouching preserves skin texture. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail."
+    },
+    {
         id: 1,
-        url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
-        prompt: "A ultra-realistic cinematic portrait of a young woman with freckles, soft golden hour lighting, 85mm lens, f/1.8, highly detailed reflection in eyes."
+        url: "/generated/jjk_gojo.png",
+        prompt: "Nana anime art style. A cool powerful jujutsu sorcerer with white spiky hair and a black blindfold, floating in the air, glowing purple and red cursed energy surrounding him. Dark urban street background, highly detailed 2D animation style, masterpiece."
     },
     {
         id: 2,
-        url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
-        prompt: "Abstract fluid art with vibrant neon glowing colors spreading like ink in water, dark background, 8k resolution, macro photography."
+        url: "/generated/matrix_neo.png",
+        prompt: "Cinematic movie still, Nana anime aesthetic. A pale hacker with dark sunglasses and a long black trenchcoat bending backward to dodge glowing green digital data bullets in slow motion. Dark sci-fi atmosphere, green tint, dramatic lighting."
     },
     {
         id: 3,
-        url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800&auto=format&fit=crop",
-        prompt: "Cyberpunk street style photography, neon lights reflecting on wet pavement, cinematic mood, moody atmospheric environment."
+        url: "/generated/jjk_diverse.png",
+        prompt: "Nana anime art style. A badass Black female jujutsu sorcerer with dreadlocks, wearing a dark navy tokyo high school uniform, glowing bright blue cursed energy wrapping around her fists. Dynamic combat action pose, highly detailed 2D animation style, masterpiece."
     },
     {
         id: 4,
-        url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop",
-        prompt: "Professional corporate headshot, soft natural lighting, elegant smile, clean blurred studio background."
+        url: "/generated/ghost_tsushima.png",
+        prompt: "Cinematic samurai action game, Nana anime style. A badass Afro-Samurai wearing traditional worn ronin armor and a straw hat, drawing a katana in a field of glowing red spider lilies under a giant full moon. Dramatic shadows, historical fantasy graphic novel style."
+    },
+    {
+        id: 5,
+        url: "/generated/resident_evil.png",
+        prompt: "Photorealistic survival horror video game concept art, Resident Evil style. A brave Black female survivor exploring a dark, creepy abandoned mansion, holding a flashlight. Unreal Engine 5 render, volumetric fog, eerie atmosphere, ray tracing, 8k."
+    },
+    {
+        id: 6,
+        url: "/generated/demon_slayer.png",
+        prompt: "Highly detailed anime illustration, Demon Slayer style. A young Afro-Latino swordsman wearing a bold patterned haori, wielding a glowing katana with water breathing effects. Dynamic combat pose, dark forest, cinematic lighting, masterpiece."
+    },
+    {
+        id: 7,
+        url: "/generated/cyberpunk.png",
+        prompt: "Photorealistic cyberpunk city street at night, Cyberpunk 2077 style. A diverse Asian female mercenary with subtle cybernetic facial enhancements, wearing a glowing jacket, standing in neon rain. Reflective wet pavement, Unreal Engine 5, 8k."
+    },
+    {
+        id: 8,
+        url: "/generated/ghibli_fantasy.png",
+        prompt: "Beautiful Studio Ghibli style anime background. A young Indian girl in travel clothes with a glowing staff, exploring a magical lush green forest filled with glowing spirits. Serene atmosphere, watercolor painting style, vibrant, masterpiece."
     }
 ];
 
@@ -83,8 +122,16 @@ function GenerateContent() {
         // Simula o tempo de latência de uma API de Geração de IA
         setTimeout(() => {
             setIsGenerating(false);
-            // Result mockup - you can change this to any image URL
-            setGeneratedImage("https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800&auto=format&fit=crop");
+            const possibleResults = [
+                "/generated/elden_ring_real.png",
+                "/generated/jjk_real.png",
+                "/generated/hells_paradise_real.png",
+                "/generated/jjk_gojo.png",
+                "/generated/matrix_neo.png",
+                "/generated/ghost_tsushima.png"
+            ];
+            const randomResult = possibleResults[Math.floor(Math.random() * possibleResults.length)];
+            setGeneratedImage(randomResult);
         }, 3000);
     };
 
@@ -193,6 +240,7 @@ function GenerateContent() {
                                                     src={preview}
                                                     alt="Upload preview"
                                                     fill
+                                                    sizes="(max-width: 1024px) 100vw, 50vw"
                                                     className="object-contain"
                                                 />
                                             )}
@@ -218,6 +266,7 @@ function GenerateContent() {
                                                         src={generatedImage}
                                                         alt="Generated Result"
                                                         fill
+                                                        sizes="(max-width: 1024px) 100vw, 50vw"
                                                         className="object-contain"
                                                     />
                                                 </motion.div>
@@ -334,6 +383,7 @@ function GenerateContent() {
                                         src={img.url}
                                         alt="Inspiration"
                                         fill
+                                        sizes="(max-width: 768px) 50vw, 25vw"
                                         className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">

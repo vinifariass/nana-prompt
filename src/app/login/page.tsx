@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { Camera, ArrowLeft } from "lucide-react";
 
@@ -62,13 +62,17 @@ export default function LoginPage() {
                 </div>
 
                 {/* Form */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <input
-                        type="email"
-                        placeholder="nome@exemplo.com"
-                        className="input-field"
-                    />
-                    <button className="btn-dark" style={{ padding: "0.875rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <label style={{ fontSize: "0.875rem", fontWeight: 500, textAlign: "left", color: "var(--text-primary)" }}>
+                            E-mail
+                        </label>
+                        <input
+                            type="email"
+                            className="input-field"
+                        />
+                    </div>
+                    <button className="btn-dark" style={{ padding: "0.875rem", marginTop: "0.25rem" }}>
                         Entrar com Email
                     </button>
                 </div>

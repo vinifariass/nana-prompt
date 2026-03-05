@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -31,16 +31,18 @@ import { Footer } from "@/components/Footer";
 /* ───────── DATA ───────── */
 
 const styles = [
-  { name: "Corporativo", description: "Fotos profissionais para LinkedIn e currículos", samples: 1234, image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80" },
-  { name: "Fashion", description: "Ensaios de moda e editorial", samples: 892, image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80" },
-  { name: "Casual", description: "Fotos naturais para redes sociais", samples: 2103, image: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=80" },
-  { name: "Artístico", description: "Fotos criativas e únicas", samples: 756, image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80" },
+  { name: "Elden Ring (Realista)", description: "Dark fantasy RPG, textures ultra-detalhadas", samples: 1234, image: "/generated/elden_ring_real.png" },
+  { name: "Jujutsu Kaisen (Realista)", description: "Dark urban fantasy, estilo live-action incrível", samples: 892, image: "/generated/jjk_real.png" },
+  { name: "Hell's Paradise (Realista)", description: "Kunoichi ninja e iluminação cinematográfica", samples: 2103, image: "/generated/hells_paradise_real.png" },
+  { name: "Jujutsu Kaisen (Anime)", description: "2D detalhado em estilo Nana Anime, super vibrante", samples: 756, image: "/generated/jjk_gojo.png" },
+  { name: "The Matrix (Anime)", description: "Sci-fi cyberpunk tenso com estética de graphic novel", samples: 1432, image: "/generated/matrix_neo.png" },
+  { name: "Demons Slayer (Anime)", description: "Ilustração anime de alta qualidade com katana flamejante", samples: 941, image: "/generated/demon_slayer.png" },
 ];
 
 const testimonials = [
-  { name: "Ana Silva", role: "Designer Gráfica", content: "Incrível! Consegui fotos profissionais para meu portfólio sem gastar com fotógrafo. A qualidade é surpreendente!", rating: 5, generated: 47, avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80" },
-  { name: "Carlos Mendes", role: "Empresário", content: "Precisava atualizar minha foto do LinkedIn urgentemente. Em 5 minutos tinha 20 opções profissionais para escolher.", rating: 5, generated: 23, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80" },
-  { name: "Juliana Costa", role: "Influenciadora", content: "Uso para criar conteúdo para Instagram. Economizo tempo e dinheiro, e o resultado é sempre impecável!", rating: 5, generated: 156, avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80" },
+  { name: "Ana Silva", role: "Designer Gráfica", content: "Incrível! Consegui fotos profissionais para meu portfólio sem gastar com fotógrafo. A qualidade é surpreendente!", rating: 5, generated: 47, avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&q=80" },
+  { name: "Carlos Mendes", role: "Empresário", content: "Precisava atualizar minha foto do LinkedIn urgentemente. Em 5 minutos tinha 20 opções profissionais para escolher.", rating: 5, generated: 23, avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&q=80" },
+  { name: "Juliana Costa", role: "Influenciadora", content: "Uso para criar conteúdo para Instagram. Economizo tempo e dinheiro, e o resultado é sempre impecável!", rating: 5, generated: 156, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&q=80" },
 ];
 
 const stats = [
@@ -236,7 +238,7 @@ export default function Home() {
                 overflow: "hidden", position: "relative",
               }}>
                 <div style={{ width: "100%", height: "100%", position: "relative" }}>
-                  <Image src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80" alt="Exemplo gerado por IA" fill style={{ objectFit: "cover" }} />
+                  <Image src="https://images.unsplash.com/photo-1531123897727-8f129e1bfcd5?w=800&q=80" alt="Exemplo gerado por IA" fill priority sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: "cover" }} />
                 </div>
                 <div style={{
                   position: "absolute", top: 16, right: 16,
@@ -435,7 +437,7 @@ export default function Home() {
                   aspectRatio: "3/4", cursor: "pointer",
                 }}>
                   <div style={{ position: "absolute", inset: 0 }}>
-                    <Image src={style.image} alt={style.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <Image src={style.image} alt={style.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
                   </div>
 
                   {/* Hover overlay with mobile fallback */}

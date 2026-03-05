@@ -3,47 +3,112 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Lock, ArrowLeft, Search, Copy, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Dados visuais impressionantes para a galeria
 const EXPLORE_IMAGES = [
     {
+        id: 21,
+        url: "/generated/elden_ring_real.png",
+        prompt: "Buat saya memakai the heavy, battle-worn armor of a Tarnished Knight from Elden Ring. Buatkan pose khas nya holding a massive, intricately textured greatsword. Characterized by stark cinematic lighting and intense contrast, featuring volumetric fog and an ethereal atmosphere. Captured with a slightly low, upward-facing angle that dramatizes the subject's posture. The background is a glowing, gloomy mystical landscape dominated by the massive golden Erdtree in the distance, creating a bold visual clash between the dark fantasy foreground and the holy light. Lighting is tightly directional, casting warm golden highlights on the brushed steel armor while plunging the other side into velvety pitch shadow. The subject's expression is resolute and unreadable, suggesting quiet defiance. Minimal retouching preserves sweat, dirt, and skin imperfections for hyper-realism. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail dan realistis dengan tekstur AAA game graphics.",
+        category: "Elden Ring"
+    },
+    {
+        id: 22,
+        url: "/generated/jjk_real.png",
+        prompt: "Buat saya memakai the sleek, dark navy Tokyo Jujutsu High uniform from Jujutsu Kaisen. Buatkan pose khas nya charging powerful cursed energy. Characterized by high-octane cinematic lighting and intense neon contrast. Captured with a dynamic Dutch angle that dramatizes the subject's face. The background is a ruined, post-apocalyptic Tokyo street at night, creating a bold visual clash with the glowing bright blue cursed energy wrapping around the fists. Lighting is tightly directional, casting erratic, vibrant cyan highlights on one side of the face while plunging the other into shadow, emphasizing bone structure with architectural precision. The subject's expression is fierce yet focused. The uniform fabric is richly defined. Minimal retouching preserves skin texture and subtle grit. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail dan realistis.",
+        category: "Jujutsu Kaisen"
+    },
+    {
+        id: 23,
+        url: "/generated/hells_paradise_real.png",
+        prompt: "Buat saya memakai traditional yet highly tactical kunoichi shinobi garb from Hell's Paradise, including delicate but lethal twin curved blades. Buatkan pose khas nya characterized by stark cinematic lighting and lush environmental contrast. Captured with a dynamic framing that dramatizes the intense gaze. The composition evokes serene lethality. The background is a mysterious island overgrown with exotic blooming lotus flowers in surreal magenta and turquoise hues, creating a bold visual clash with the model's dark stealth wardrobe. Lighting is soft, dappled, and tightly directional, piercing through a thick canopy to cast warm golden highlights on the skin and metallic blades. The subject's expression is unreadable and cool-toned. Minimal retouching preserves skin texture. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail.",
+        category: "Hell's Paradise"
+    },
+    {
+        id: 24,
+        url: "/generated/re_requiem_real.png",
+        prompt: "Buat saya memakai rugged, dirt-covered survival gear suitable for a survival horror protagonist, inspired by Resident Evil. Buatkan pose khas nya holding a detailed tactical shotgun, characterized by stark cinematic lighting. Captured with a tight, claustrophobic close-up angle that dramatizes the subject's jawline and tense shoulders. The background is a pitched-black, gothic castle hallway filled with ominous volumetric fog. Lighting is strictly from a single, harsh flashlight source, casting stark, blinding highlights on one side of the face while plunging the rest into velvety shadow, emphasizing bone structure. The subject's expression is intense, sweat-beaded forehead, jaw clenched, suggesting extreme hyper-vigilance. The rugged clothing is richly defined with grime. Minimal retouching preserves skin texture and extreme imperfections. Make the face and hairstyle as similar as possible. Buat pencahayaan dan tekstur sangat realistis layaknya game next-gen.",
+        category: "Survival Horror"
+    },
+    {
+        id: 25,
+        url: "/generated/crimson_desert_real.png",
+        prompt: "Buat saya memakai heavily weathered leather armor and thick animal fur mantles from Crimson Desert. Buatkan pose khas nya sitting victorious on a muddy medieval battlefield. Characterized by stark cinematic lighting and intense, gritty contrast. Captured with a low, upward-facing angle that dramatizes the heroic presence. The background is a brutal, fog-drenched fantasy battlefield under an overcast sky, creating a bold visual clash with the rich earthy tones of the armor. Lighting is tightly directional from a breaking sun, casting warm golden god-rays on one side of the face. The subject's expression is battle-weary yet unbroken. The leather and fur textures are richly defined against the skin's sweat. Minimal retouching preserves scars and skin texture. Make the face and hairstyle as similar as possible to the photo. Buat kostumnya sangat detail dengan kualitas AAA gaming.",
+        category: "Crimson Desert"
+    },
+    {
         id: 1,
-        url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
-        prompt: "A ultra-realistic cinematic portrait of a young woman with freckles, soft golden hour lighting, 85mm lens, f/1.8, highly detailed reflection in eyes.",
-        category: "Portrait"
+        url: "/generated/jjk_gojo.png",
+        prompt: "Nana anime art style. A cool powerful jujutsu sorcerer with white spiky hair and a black blindfold, floating in the air, glowing purple and red cursed energy surrounding him. Dark urban street background, highly detailed 2D animation style, masterpiece.",
+        category: "Jujutsu Kaisen"
     },
     {
         id: 2,
-        url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
-        prompt: "Abstract fluid art with vibrant neon glowing colors spreading like ink in water, dark background, 8k resolution, macro photography.",
-        category: "Abstract"
+        url: "/generated/matrix_neo.png",
+        prompt: "Cinematic movie still, Nana anime aesthetic. A pale hacker with dark sunglasses and a long black trenchcoat bending backward to dodge glowing green digital data bullets in slow motion. Dark sci-fi atmosphere, green tint, dramatic lighting.",
+        category: "The Matrix"
     },
     {
         id: 3,
-        url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800&auto=format&fit=crop",
-        prompt: "Cyberpunk street style photography, neon lights reflecting on wet pavement, cinematic mood, moody atmospheric environment.",
-        category: "Cinematic"
+        url: "/generated/elden_ring.png",
+        prompt: "Dark fantasy RPG concept art, Nana anime style. A pale tarnished knight with silver hair wearing intricate worn medieval armor, holding a glowing golden sword, facing a massive glowing magical tree in the distance. Epic scale, atmospheric.",
+        category: "Elden Ring"
     },
     {
         id: 4,
-        url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop",
-        prompt: "Professional corporate headshot, soft natural lighting, elegant smile, clean blurred studio background.",
-        category: "Professional"
+        url: "/generated/jjk_diverse.png",
+        prompt: "Nana anime art style. A badass Black female jujutsu sorcerer with dreadlocks, wearing a dark navy tokyo high school uniform, glowing bright blue cursed energy wrapping around her fists. Dynamic combat action pose, highly detailed 2D animation style, masterpiece.",
+        category: "Jujutsu Kaisen"
     },
     {
         id: 5,
-        url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop",
-        prompt: "Dramatic artistic portrait with red and blue color gels, chiaroscuro lighting, intense expression.",
-        category: "Artistic"
+        url: "/generated/dune_diverse.png",
+        prompt: "Cinematic sci-fi movie still, Nana anime aesthetic. A young South Asian warrior standing in a vast orange desert, wearing a highly detailed futuristic survival stillsuit, blue eyes glowing slightly, golden spice dust floating in the air. Epic lighting.",
+        category: "Dune"
     },
     {
         id: 6,
-        url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop",
-        prompt: "Beauty portrait with perfect skin texture, glossy lips, studio beauty dish lighting, rim light, ultra high definition.",
-        category: "Beauty"
+        url: "/generated/ghost_tsushima.png",
+        prompt: "Cinematic samurai action game, Nana anime style. A badass Afro-Samurai wearing traditional worn ronin armor and a straw hat, drawing a katana in a field of glowing red spider lilies under a giant full moon. Dramatic shadows, historical fantasy graphic novel style.",
+        category: "Ghost of Tsushima"
+    },
+    {
+        id: 7,
+        url: "/generated/resident_evil.png",
+        prompt: "Photorealistic survival horror video game concept art, Resident Evil style. A brave Black female survivor exploring a dark, creepy abandoned mansion, holding a flashlight. Unreal Engine 5 render, volumetric fog, eerie atmosphere, ray tracing, 8k.",
+        category: "Survival Horror"
+    },
+    {
+        id: 8,
+        url: "/generated/demon_slayer.png",
+        prompt: "Highly detailed anime illustration, Demon Slayer style. A young Afro-Latino swordsman wearing a bold patterned haori, wielding a glowing katana with water breathing effects. Dynamic combat pose, dark forest, cinematic lighting, masterpiece.",
+        category: "Anime Combat"
+    },
+    {
+        id: 9,
+        url: "/generated/cyberpunk.png",
+        prompt: "Photorealistic cyberpunk city street at night, Cyberpunk 2077 style. A diverse Asian female mercenary with subtle cybernetic facial enhancements, wearing a glowing jacket, standing in neon rain. Reflective wet pavement, Unreal Engine 5, 8k.",
+        category: "Cyberpunk"
+    },
+    {
+        id: 10,
+        url: "/generated/ghibli_fantasy.png",
+        prompt: "Beautiful Studio Ghibli style anime background. A young Indian girl in travel clothes with a glowing staff, exploring a magical lush green forest filled with glowing spirits. Serene atmosphere, watercolor painting style, vibrant, masterpiece.",
+        category: "Studio Ghibli"
+    },
+    {
+        id: 11,
+        url: "/generated/final_fantasy.png",
+        prompt: "Epic high fantasy RPG concept art, Final Fantasy style. A majestic Black male paladin in ornate glowing silver armor, holding a magical greatsword, standing on a cliff overlooking a futuristic fantasy city. Photorealistic, 8k.",
+        category: "Fantasy RPG"
+    },
+    {
+        id: 12,
+        url: "/generated/valorant_style.png",
+        prompt: "Stylized 3D digital art, Valorant game style. A cool Latina agent with vibrant pink and purple hair, wearing tactical streetwear, wielding a futuristic glowing pistol. Dynamic action pose, vibrant colors, esports aesthetic, 8k.",
+        category: "Tactical Shooter"
     },
 ];
 
@@ -146,6 +211,7 @@ export default function ExplorePage() {
                                     src={item.url}
                                     alt={item.category}
                                     fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                     className="object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
                                 />
                                 <div className="absolute top-4 left-4">

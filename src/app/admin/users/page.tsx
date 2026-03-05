@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { AdminSidebarLayout } from "@/components/AdminSidebarLayout";
 import { Search, MoreVertical, ShieldBan, Mail, CheckCircle2, ShieldAlert } from "lucide-react";
+import Image from "next/image";
 
 const USERS_MOCK = [
-    { id: "1", name: "João Silva", email: "joao@exemplo.com", avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&q=80", plan: "Pro", credits: 154, status: "active", date: "01 Mar, 2026" },
-    { id: "2", name: "Maria Oliveira", email: "maria.o@exemplo.com", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80", plan: "Creator", credits: 89, status: "active", date: "28 Fev, 2026" },
-    { id: "3", name: "Carlos Mendes", email: "cmendes@exemplo.com", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80", plan: "Free", credits: 5, status: "banned", date: "25 Fev, 2026" },
-    { id: "4", name: "Ana Costa", email: "ana.costa22@exemplo.com", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80", plan: "Pro", credits: 400, status: "active", date: "22 Fev, 2026" },
-    { id: "5", name: "Lucas Fernandes", email: "lucasf@exemplo.com", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80", plan: "Free", credits: 0, status: "active", date: "20 Fev, 2026" },
+    { id: "1", name: "João Silva", email: "joao@exemplo.com", avatar: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=150&q=80", plan: "Pro", credits: 154, status: "active", date: "01 Mar, 2026" },
+    { id: "2", name: "Maria Oliveira", email: "maria.o@exemplo.com", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&q=80", plan: "Creator", credits: 89, status: "active", date: "28 Fev, 2026" },
+    { id: "3", name: "Carlos Mendes", email: "cmendes@exemplo.com", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&q=80", plan: "Free", credits: 5, status: "banned", date: "25 Fev, 2026" },
+    { id: "4", name: "Ana Costa", email: "ana.costa22@exemplo.com", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&q=80", plan: "Pro", credits: 400, status: "active", date: "22 Fev, 2026" },
+    { id: "5", name: "Lucas Fernandes", email: "lucasf@exemplo.com", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&q=80", plan: "Free", credits: 0, status: "active", date: "20 Fev, 2026" },
 ];
 
 export default function AdminUsersPage() {
@@ -79,7 +80,7 @@ export default function AdminUsersPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center ${user.plan === 'Pro' ? 'bg-[var(--brand)] border border-[var(--brand)]' : 'bg-muted border border-border'}`}>
-                                                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                                    <Image src={user.avatar} alt={user.name} width={32} height={32} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-foreground">{user.name}</p>

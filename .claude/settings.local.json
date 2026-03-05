@@ -7,7 +7,10 @@
       "Bash(del \"\\\\?\\\\C:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\nul\")",
       "Bash(cmd.exe /c \"del \\\\?\\\\C:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\nul\")",
       "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\vinic\\\\Documents\\\\nana-prompt\\\\nul \\(echo EXISTS\\) else \\(echo DELETED\\)\")",
-      "Bash(cmd.exe:*)"
+      "Bash(cmd.exe:*)",
+      "Bash(identify:*)",
+      "Skill(tailwind-patterns)",
+      "Skill(tailwind-patterns:*)"
     ]
   }
 }

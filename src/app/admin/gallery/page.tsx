@@ -10,7 +10,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { Lock, Sparkles, CheckCircle2, Search, Filter, SlidersHorizontal, Copy } from "lucide-react";
 
@@ -18,8 +18,8 @@ import { Lock, Sparkles, CheckCircle2, Search, Filter, SlidersHorizontal, Copy }
 const MOCK_IMAGES = [
     {
         id: 1,
-        url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800&auto=format&fit=crop",
-        originalUrl: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800&auto=format&fit=crop&blur=100",
+        url: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=800&auto=format&fit=crop",
+        originalUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=800&auto=format&fit=crop&blur=100",
         prompt: "A high-fashion portrait of a model in cyberpunk attire, neon lights reflection, 85mm lens, highly detailed.",
         date: "28 Fev, 2026",
         plan: "Pro"
@@ -34,8 +34,8 @@ const MOCK_IMAGES = [
     },
     {
         id: 3,
-        url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop",
-        originalUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop&blur=100",
+        url: "https://images.unsplash.com/photo-1531123414708-f142f33c56ce?q=80&w=800&auto=format&fit=crop",
+        originalUrl: "https://images.unsplash.com/photo-1531123414708-f142f33c56ce?q=80&w=800&auto=format&fit=crop&blur=100",
         prompt: "Cinematic portrait of a woman looking thoughtfully out a rainy window, soft natural light.",
         date: "25 Fev, 2026",
         plan: "Creator"
@@ -187,6 +187,7 @@ export default function AdminGalleryPage() {
                                             src={selectedImage.originalUrl}
                                             alt="Original photo"
                                             fill
+                                            sizes="(max-width: 768px) 100vw, 800px"
                                             className="object-contain"
                                             draggable={false}
                                         />
@@ -200,6 +201,7 @@ export default function AdminGalleryPage() {
                                                 src={selectedImage.url}
                                                 alt="Generated photo"
                                                 fill
+                                                sizes="(max-width: 768px) 100vw, 800px"
                                                 className="object-contain"
                                                 draggable={false}
                                             />
@@ -242,6 +244,7 @@ export default function AdminGalleryPage() {
                                             src={selectedImage.url}
                                             alt="Selected preview"
                                             fill
+                                            sizes="(max-width: 768px) 100vw, 800px"
                                             className="object-contain"
                                         />
                                         {/* Gradient fade */}

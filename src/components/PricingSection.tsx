@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { Check, ArrowRight, CreditCard, Banknote } from "lucide-react";
 import { plans } from "../data/content";

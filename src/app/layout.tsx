@@ -1,10 +1,25 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-jakarta",
+});
+
+const cabinetGrotesk = localFont({
+  src: [
+    { path: "../../fonts/CabinetGrotesk-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../../fonts/CabinetGrotesk-Medium.woff2", weight: "500", style: "normal" },
+    { path: "../../fonts/CabinetGrotesk-Bold.woff2", weight: "700", style: "normal" },
+    { path: "../../fonts/CabinetGrotesk-Extrabold.woff2", weight: "800", style: "normal" },
+    { path: "../../fonts/CabinetGrotesk-Black.woff2", weight: "900", style: "normal" },
+  ],
+  variable: "--font-cabinet",
   display: "swap",
 });
 
@@ -22,12 +37,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <head>
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap"
-          rel="stylesheet"
-        />
       </head>
-      <body className={plusJakartaSans.className}>{children}</body>
+      <body className={`${plusJakartaSans.className} ${cabinetGrotesk.variable}`}>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

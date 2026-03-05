@@ -1,0 +1,7 @@
+src/app/api/auth/[...nextauth]/route.ts(2,29): error TS2307: Cannot find module '../../auth' or its corresponding type declarations.
+src/server/auth/index.ts(21,25): error TS7031: Binding element 'session' implicitly has an 'any' type.
+src/server/auth/index.ts(21,34): error TS7031: Binding element 'token' implicitly has an 'any' type.
+src/server/auth/index.ts(30,25): error TS2345: Argument of type '{ adapter: Adapter; providers: OAuthConfig<GoogleProfile>[]; pages: { signIn: string; }; session: { strategy: string; }; callbacks: { session({ session, token }: { session: any; token: any; }): Promise<...>; }; }' is not assignable to parameter of type 'AuthOptions'.
+  The types of 'session.strategy' are incompatible between these types.
+    Type 'string' is not assignable to type 'SessionStrategy | undefined'.
+src/server/db.ts(1,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.

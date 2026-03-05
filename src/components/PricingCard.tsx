@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PaymentModal } from "./PaymentModal";
 
 const plans = [
     {
@@ -65,6 +66,13 @@ const plans = [
 
 export default function PricingCard() {
     const [billingPeriod, setBillingPeriod] = useState<"mensal" | "anual">("mensal");
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [selectedPlanDetails, setSelectedPlanDetails] = useState({ name: "Pro", price: "R$ 69" });
+
+    const handleOpenPayment = (planName: string, price: string) => {
+        setSelectedPlanDetails({ name: planName, price });
+        setIsPaymentModalOpen(true);
+    };
 
     return (
         <section id="pricing" className="py-20 bg-[#000000]">
@@ -150,17 +158,31 @@ export default function PricingCard() {
                                 <div className="text-sm text-white/40 mb-8 min-h-[20px]"></div>
                             )}
 
-                            <Link
-                                href="/login"
-                                className={cn(
-                                    "w-full flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors mb-8",
-                                    plan.popular
-                                        ? "bg-brand text-[#0a0a0f] hover:bg-brand/90"
-                                        : "bg-white/5 text-white hover:bg-white/10"
-                                )}
-                            >
-                                {plan.cta}
-                            </Link>
+                            {plan.priceMensal === "R$ 0" ? (
+                                <Link
+                                    href="/login"
+                                    className={cn(
+                                        "w-full flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors mb-8",
+                                        plan.popular
+                                            ? "bg-brand text-[#0a0a0f] hover:bg-brand/90"
+                                            : "bg-white/5 text-white hover:bg-white/10"
+                                    )}
+                                >
+                                    {plan.cta}
+                                </Link>
+                            ) : (
+                                <button
+                                    onClick={() => handleOpenPayment(plan.name, billingPeriod === "mensal" ? plan.priceMensal : plan.priceAnual)}
+                                    className={cn(
+                                        "w-full flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors mb-8 cursor-pointer",
+                                        plan.popular
+                                            ? "bg-brand text-[#0a0a0f] hover:bg-brand/90"
+                                            : "bg-white/5 text-white hover:bg-white/10"
+                                    )}
+                                >
+                                    {plan.cta}
+                                </button>
+                            )}
 
                             <ul className="space-y-4 text-sm text-white/80 mt-auto">
                                 {plan.features.map((feature, i) => (
@@ -174,6 +196,13 @@ export default function PricingCard() {
                     ))}
                 </div>
             </div>
+
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                planName={selectedPlanDetails.name}
+                price={selectedPlanDetails.price}
+            />
         </section>
     );
 }

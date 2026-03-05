@@ -1,0 +1,45 @@
+Usage: create-claude-config [options]
+
+Setup Claude Code configurations and create global AI agents powered by Claude
+Code SDK
+
+Options:
+  -V, --version                                output the version number
+  -l, --language <language>                    specify programming language (deprecated, use --template)
+  -f, --framework <framework>                  specify framework (deprecated, use --template)
+  -t, --template <template>                    specify template (e.g., common, javascript-typescript, python, ruby)
+  -d, --directory <directory>                  target directory (default: current directory)
+  -y, --yes                                    skip prompts and use defaults
+  --dry-run                                    show what would be copied without actually copying
+  --command-stats, --commands-stats            analyze existing Claude Code commands and offer optimization
+  --hook-stats, --hooks-stats                  analyze existing automation hooks and offer optimization
+  --mcp-stats, --mcps-stats                    analyze existing MCP server configurations and offer optimization
+  --analytics                                  launch real-time Claude Code analytics dashboard
+  --chats                                      launch mobile-first chats interface (AI-optimized for mobile devices)
+  --agents                                     launch Claude Code agents dashboard (opens directly to conversations)
+  --chats-mobile                               launch mobile-first chats interface (AI-optimized for mobile devices)
+  --plugins                                    launch Plugin Dashboard to view marketplaces, installed plugins, and permissions
+  --skills-manager                             launch Skills Dashboard to view and explore installed Claude Code Skills
+  --teams                                      launch Agent Teams Dashboard to review multi-agent collaboration sessions
+  --2025                                       launch 2025 Year in Review dashboard (showcase your Claude Code usage statistics)
+  --tunnel                                     enable Cloudflare Tunnel for remote access (use with --analytics or --chats)
+  --verbose                                    enable verbose logging for debugging and development
+  --health-check, --health, --check, --verify  run comprehensive health check to verify Claude Code setup
+  --agent <agent>                              install specific agent component (supports comma-separated values)
+  --command <command>                          install specific command component (supports comma-separated values)
+  --mcp <mcp>                                  install specific MCP component (supports comma-separated values)
+  --setting <setting>                          install specific setting component (supports comma-separated values)
+  --hook <hook>                                install specific hook component (supports comma-separated values)
+  --skill <skill>                              install specific skill component (supports comma-separated values)
+  --workflow <workflow>                        install workflow from hash (#hash) OR workflow YAML (base64 encoded) when used with --agent/--command/--mcp
+  --prompt <prompt>                            execute the provided prompt in Claude Code after installation or in sandbox
+  --create-agent <agent>                       create a global agent accessible from anywhere (e.g., customer-support)
+  --list-agents                                list all installed global agents
+  --remove-agent <agent>                       remove a global agent
+  --update-agent <agent>                       update a global agent to the latest version
+  --studio                                     launch Claude Code Studio interface for local and cloud execution
+  --sandbox <provider>                         execute Claude Code in isolated sandbox environment (e.g., e2b)
+  --e2b-api-key <key>                          E2B API key for sandbox execution (alternative to environment variable)
+  --anthropic-api-key <key>                    Anthropic API key for Claude Code (alternative to environment variable)
+  --clone-session <url>                        download and import a shared Claude Code session from URL
+  -h, --help                                   display help for command

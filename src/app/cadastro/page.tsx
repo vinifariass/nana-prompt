@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { Sparkles, ArrowRight, Camera, Check, ChevronLeft } from "lucide-react";
 
@@ -88,43 +88,43 @@ export default function RegisterPage() {
                                 </div>
 
                                 <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                                            <label className="text-sm font-medium text-foreground">
                                                 Nome Completo
                                             </label>
                                             <input
                                                 required
-                                                className="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-                                                placeholder="João Silva"
+                                                type="text"
+                                                className="input-field"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                                Email
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                                            <label className="text-sm font-medium text-foreground">
+                                                E-mail
                                             </label>
                                             <input
                                                 required
                                                 type="email"
-                                                className="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-                                                placeholder="m@exemplo.com"
+                                                className="input-field"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                                            <label className="text-sm font-medium text-foreground">
                                                 Senha
                                             </label>
                                             <input
                                                 required
                                                 type="password"
-                                                className="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="input-field"
                                             />
                                         </div>
                                     </div>
 
                                     <button
                                         type="submit"
-                                        className="w-full inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 h-11 px-8 transition-colors mt-6"
+                                        className="btn-dark"
+                                        style={{ padding: "0.875rem", marginTop: "1rem" }}
                                     >
                                         Continuar <ArrowRight className="w-4 h-4 ml-1" />
                                     </button>

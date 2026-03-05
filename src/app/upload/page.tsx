@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { AdminSidebarLayout } from "@/components/AdminSidebarLayout";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { UploadCloud, Image as ImageIcon, X, Sparkles, Wand2 } from "lucide-react";
 import Image from "next/image";
 
@@ -62,8 +62,16 @@ export default function UploadPage() {
         // Simula o tempo de latência de uma API de Geração de IA
         setTimeout(() => {
             setIsGenerating(false);
-            // Result mockup - you can change this to any image URL
-            setGeneratedImage("https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800&auto=format&fit=crop");
+            const possibleResults = [
+                "/generated/re_requiem_real.png",
+                "/generated/crimson_desert_real.png",
+                "/generated/elden_ring_real.png",
+                "/generated/dune_diverse.png",
+                "/generated/cyberpunk.png",
+                "/generated/demon_slayer.png"
+            ];
+            const randomResult = possibleResults[Math.floor(Math.random() * possibleResults.length)];
+            setGeneratedImage(randomResult);
         }, 3000);
     };
 
@@ -146,6 +154,7 @@ export default function UploadPage() {
                                                     src={preview}
                                                     alt="Upload preview"
                                                     fill
+                                                    sizes="(max-width: 1024px) 100vw, 50vw"
                                                     className="object-contain"
                                                 />
                                             )}
@@ -171,6 +180,7 @@ export default function UploadPage() {
                                                         src={generatedImage}
                                                         alt="Generated Result"
                                                         fill
+                                                        sizes="(max-width: 1024px) 100vw, 50vw"
                                                         className="object-contain"
                                                     />
                                                 </motion.div>

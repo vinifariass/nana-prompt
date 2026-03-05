@@ -2,6 +2,8 @@
 
 import { AdminSidebarLayout } from "@/components/AdminSidebarLayout";
 import { Download, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { PaymentModal } from "@/components/PaymentModal";
 
 const INVOICES = [
     { id: "INV-2026-03", date: "01 Mar, 2026", amount: "R$ 29,90", status: "paid", plan: "Creator" },
@@ -10,6 +12,8 @@ const INVOICES = [
 ];
 
 export default function BillingPage() {
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
     return (
         <AdminSidebarLayout>
             <div className="max-w-5xl mx-auto w-full space-y-8">
@@ -50,7 +54,9 @@ export default function BillingPage() {
                                 </div>
                             </div>
 
-                            <button className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-black py-2.5 rounded-lg text-sm font-bold transition-all hover:scale-[1.02] shadow-[0_0_15px_rgba(var(--brand-rgb),0.3)]">
+                            <button
+                                onClick={() => setIsPaymentModalOpen(true)}
+                                className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-black py-2.5 rounded-lg text-sm font-bold transition-all hover:scale-[1.02] shadow-[0_0_15px_rgba(var(--brand-rgb),0.3)]">
                                 Fazer Upgrade para Pro
                             </button>
                         </div>
@@ -145,6 +151,13 @@ export default function BillingPage() {
                     </div>
                 </div>
             </div>
+
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                planName="Pro"
+                price="R$ 69,90"
+            />
         </AdminSidebarLayout>
     );
 }
