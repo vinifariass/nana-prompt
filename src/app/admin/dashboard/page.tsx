@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getAdminStats, getRevenueStats } from "@/server/queries/stats";
 import { DollarSign, Users, Image as ImageIcon, TrendingUp, CreditCard } from "lucide-react";
 

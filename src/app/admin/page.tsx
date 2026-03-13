@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getAdminStats, getRecentActivity } from "@/server/queries/stats";
 import { AdminSidebarLayout } from "@/components/AdminSidebarLayout";
 import { AdminDashboardClient } from "./DashboardClient";
