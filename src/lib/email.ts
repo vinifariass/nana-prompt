@@ -1,9 +1,13 @@
 import { Resend } from "resend";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const getResend = () => {
+    const key = process.env.RESEND_API_KEY;
+    if (!key || key.trim() === "" || key.includes("re_...")) return null;
+    return new Resend(key);
+};
 
 export async function sendWelcomeEmail(email: string, name?: string | null) {
+    const resend = getResend();
     if (!resend) {
         console.warn("Resend API key missing. Skipping welcome email.");
         return;
@@ -26,6 +30,7 @@ export async function sendWelcomeEmail(email: string, name?: string | null) {
 }
 
 export async function sendLowCreditsEmail(email: string, balance: number) {
+    const resend = getResend();
     if (!resend) {
         console.warn("Resend API key missing. Skipping low credits email.");
         return;
@@ -47,6 +52,7 @@ export async function sendLowCreditsEmail(email: string, balance: number) {
 }
 
 export async function sendUpgradeSuccessEmail(email: string, plan: string) {
+    const resend = getResend();
     if (!resend) {
         console.warn("Resend API key missing. Skipping upgrade email.");
         return;

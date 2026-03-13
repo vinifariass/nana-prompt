@@ -5,9 +5,13 @@ import type { Plan } from "@prisma/client";
 import { sendUpgradeSuccessEmail } from "@/lib/email";
 
 import Stripe from "stripe";
+const getStripe = () => {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+};
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const getWebhookSecret = () => process.env.STRIPE_WEBHOOK_SECRET;
 
 const PLAN_CREDITS: Record<Plan, number> = {
   FREE: 10,
@@ -24,6 +28,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
+  const stripe = getStripe();
+  const webhookSecret = getWebhookSecret();
+
+  if (!stripe || !webhookSecret) {
+    console.warn("Stripe keys missing. Skipping webhook processing.");
+    return NextResponse.json({ error: "Stripe configuration missing" }, { status: 500 });
+  }
+
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
@@ -38,6 +50,7 @@ export async function POST(req: Request) {
         const session = event.data.object;
         const userId = session.metadata?.userId;
         const plan = (session.metadata?.plan as Plan) ?? "CREATOR";
+
 
         if (!userId) break;
 
