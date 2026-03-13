@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code / AI Templates
+.claude/
+planejamento-sprint-1.md
+help.txt
+logs.txt
+ts_errors.log

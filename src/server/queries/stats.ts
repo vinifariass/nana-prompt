@@ -38,3 +38,47 @@ export async function getUsersByPlan() {
     orderBy: { plan: "asc" },
   });
 }
+
+export async function getRevenueStats() {
+  const subscriptions = await db.subscription.findMany({
+    where: { status: "ACTIVE" },
+    select: { plan: true },
+  });
+
+  const PLAN_PRICES = {
+    FREE: 0,
+    CREATOR: 19.9, // Exemplo: R$ 19,90
+    PRO: 49.9,    // Exemplo: R$ 49,90
+  };
+
+  const mrr = subscriptions.reduce((acc, sub) => {
+    return acc + (PLAN_PRICES[sub.plan as keyof typeof PLAN_PRICES] || 0);
+  }, 0);
+
+  // Simplificação: Total Revenue = MRR por enquanto (faturamento mensal base)
+  return {
+    mrr,
+    totalRevenue: mrr * 1.5, // Simulação
+    planBreakdown: subscriptions.reduce((acc, sub) => {
+      acc[sub.plan] = (acc[sub.plan] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+  };
+}
+
+export async function getRecentActivity(limit = 10) {
+  const [generations, subscriptions] = await db.$transaction([
+    db.generation.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { name: true, plan: true } } },
+    }),
+    db.subscription.findMany({
+      take: limit,
+      orderBy: { updatedAt: "desc" },
+      include: { user: { select: { name: true } } },
+    }),
+  ]);
+
+  return { generations, subscriptions };
+}

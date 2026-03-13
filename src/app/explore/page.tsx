@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Lock, ArrowLeft, Search, Copy, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getUserBalance } from "@/server/actions/user";
 
 const EXPLORE_IMAGES = [
     {
@@ -113,8 +114,19 @@ const EXPLORE_IMAGES = [
 ];
 
 export default function ExplorePage() {
-    // A pedido do usuário: "mas por enquanto deixa desvbloqueado" = true
-    const hasPremium = true;
+    const [userPlan, setUserPlan] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPlan = async () => {
+            const data = await getUserBalance();
+            setUserPlan(data.plan);
+            setIsLoading(false);
+        };
+        fetchPlan();
+    }, []);
+
+    const hasPremium = userPlan !== "FREE" && userPlan !== null;
 
     const [copiedId, setCopiedId] = useState<number | null>(null);
 

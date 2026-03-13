@@ -9,11 +9,7 @@ const protectedPaths = [
   "/explore",
 ];
 
-const adminPaths = [
-  "/admin/users",
-  "/admin/billing",
-  "/admin/settings",
-];
+const adminPaths = ["/admin"];
 
 const authPaths = ["/login", "/cadastro"];
 
@@ -38,10 +34,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Se está numa rota admin e NÃO é ADMIN → redireciona pro dashboard
+  // Se está numa rota admin e NÃO é ADMIN → redireciona pro dashboard de usuário
   if (adminPaths.some((path) => pathname.startsWith(path))) {
     if (token && token.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return NextResponse.redirect(new URL("/generate", request.url));
     }
   }
 
@@ -50,6 +46,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|generated|api/auth).*)",
+    "/((?!_next/static|_next/image|favicon.ico|generated|api/auth|api/webhooks).*)",
   ],
 };

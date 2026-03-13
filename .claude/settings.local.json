@@ -10,7 +10,10 @@
       "Bash(cmd.exe:*)",
       "Bash(identify:*)",
       "Skill(tailwind-patterns)",
-      "Skill(tailwind-patterns:*)"
+      "Skill(tailwind-patterns:*)",
+      "Bash(ls /c/Users/vinic/Documents/nana-prompt/.env* 2>/dev/null || echo \"No .env files found\")",
+      "Bash(npx prisma validate:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

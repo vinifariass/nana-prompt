@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { UploadCloud, Image as ImageIcon, X, Sparkles, Wand2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
+import { getUserBalance } from "@/server/actions/user";
+import { generateImage } from "@/server/actions/generation";
 
 const INSPIRATION_IMAGES = [
     {
@@ -77,10 +79,47 @@ function GenerateContent() {
     const [isDragging, setIsDragging] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Estado da imagem 2 (Estilo/Personagem)
+    const [isDraggingStyle, setIsDraggingStyle] = useState(false);
+    const [styleFile, setStyleFile] = useState<File | null>(null);
+    const [stylePreview, setStylePreview] = useState<string | null>(null);
+    const styleFileInputRef = useRef<HTMLInputElement>(null);
+
     const [prompt, setPrompt] = useState(initialPrompt);
+    const [isEnhancing, setIsEnhancing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [balance, setBalance] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            const data = await getUserBalance();
+            setBalance(data.balance);
+        };
+        fetchBalance();
+    }, []);
+
+    const enhancePrompt = async () => {
+        if (!prompt) return;
+        setIsEnhancing(true);
+        try {
+            const res = await fetch('/api/gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, action: 'enhance_prompt' })
+            });
+            const data = await res.json();
+            if (data.text) {
+                setPrompt(data.text);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -100,6 +139,24 @@ function GenerateContent() {
         }
     };
 
+    const handleStyleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDraggingStyle(true);
+    };
+
+    const handleStyleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDraggingStyle(false);
+    };
+
+    const handleStyleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDraggingStyle(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleStyleFileSelect(e.dataTransfer.files[0]);
+        }
+    };
+
     const handleFileSelect = (selectedFile: File) => {
         if (!selectedFile.type.startsWith("image/")) return;
         setFile(selectedFile);
@@ -108,31 +165,53 @@ function GenerateContent() {
         setGeneratedImage(null);
     };
 
+    const handleStyleFileSelect = (selectedFile: File) => {
+        if (!selectedFile.type.startsWith("image/")) return;
+        setStyleFile(selectedFile);
+        const objectUrl = URL.createObjectURL(selectedFile);
+        setStylePreview(objectUrl);
+        setGeneratedImage(null);
+    };
+
     const handleRemoveFile = () => {
         setFile(null);
         if (preview) URL.revokeObjectURL(preview);
         setPreview(null);
-        setPrompt("");
-        setGeneratedImage(null);
     };
 
-    const simulateGeneration = () => {
-        if (!prompt) return;
+    const handleRemoveStyleFile = () => {
+        setStyleFile(null);
+        if (stylePreview) URL.revokeObjectURL(stylePreview);
+        setStylePreview(null);
+    };
+
+    const handleGenerate = async () => {
+        if (!prompt || !file) return;
         setIsGenerating(true);
-        // Simula o tempo de latência de uma API de Geração de IA
-        setTimeout(() => {
+
+        try {
+            const formData = new FormData();
+            formData.append("prompt", prompt);
+            if (styleFile) formData.append("style", styleFile.name); // Using name as a placeholder for now as per previous implementation logic
+
+            const result = await generateImage(formData);
+
+            if (result.success) {
+                // Fetch real balance after generation
+                const b = await getUserBalance();
+                setBalance(b.balance);
+
+                // For now, use a placeholder or simulated result if generateImage doesn't return the URL yet (it currently returns generationId)
+                // The current generateImage implementation marks it as COMPLETED with a placeholder URL
+                setGeneratedImage("/generated/elden_ring_real.png");
+            } else {
+                alert(result.error);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
             setIsGenerating(false);
-            const possibleResults = [
-                "/generated/elden_ring_real.png",
-                "/generated/jjk_real.png",
-                "/generated/hells_paradise_real.png",
-                "/generated/jjk_gojo.png",
-                "/generated/matrix_neo.png",
-                "/generated/ghost_tsushima.png"
-            ];
-            const randomResult = possibleResults[Math.floor(Math.random() * possibleResults.length)];
-            setGeneratedImage(randomResult);
-        }, 3000);
+        }
     };
 
     return (
@@ -155,7 +234,7 @@ function GenerateContent() {
 
                     <div className="flex items-center gap-4">
                         <div className="text-sm font-medium text-white/60 hidden md:block">
-                            Créditos restantes: <span className="text-white font-bold">14</span>
+                            Créditos restantes: <span className="text-white font-bold">{balance !== null ? balance : "..."}</span>
                         </div>
                     </div>
                 </div>
@@ -176,79 +255,166 @@ function GenerateContent() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--brand)]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
                     <AnimatePresence mode="wait">
-                        {!file ? (
+                        {(!file || !styleFile) && !isGenerating && !generatedImage ? (
                             <motion.div
-                                key="dropzone"
+                                key="dropzones"
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-300 ease-in-out cursor-pointer ${isDragging ? "border-[var(--brand)] bg-[var(--brand)]/5" : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
-                                    }`}
-                                onDragOver={handleDragOver}
-                                onDragLeave={handleDragLeave}
-                                onDrop={handleDrop}
-                                onClick={() => fileInputRef.current?.click()}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-6"
                             >
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
-                                />
-                                <div className="flex flex-col items-center justify-center space-y-4">
-                                    <div className={`p-4 rounded-full ${isDragging ? "bg-[var(--brand)] text-black" : "bg-white/5 text-white/40"} transition-colors`}>
-                                        <UploadCloud className="w-8 h-8" />
+                                {/* Dropzone 1: Imagem Base (Obrigatória) */}
+                                {!file ? (
+                                    <div
+                                        className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-colors duration-300 ease-in-out cursor-pointer h-full flex flex-col justify-center ${isDragging ? "border-[var(--brand)] bg-[var(--brand)]/5" : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
+                                            }`}
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+                                        />
+                                        <div className="flex flex-col items-center justify-center space-y-4">
+                                            <div className={`p-4 rounded-full ${isDragging ? "bg-[var(--brand)] text-black" : "bg-white/5 text-white/40"} transition-colors`}>
+                                                <UploadCloud className="w-8 h-8" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h3 className="font-semibold text-lg text-white">Sua Foto (Base)</h3>
+                                                <p className="text-sm text-white/50">
+                                                    Obrigatória. PNG/JPG (Max. 10MB)
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <h3 className="font-semibold text-lg text-white">Clique ou arraste sua imagem base</h3>
-                                        <p className="text-sm text-white/50">
-                                            Suporta PNG, JPG ou WEBP (Max. 10MB)
-                                        </p>
+                                ) : (
+                                    <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-black border border-white/5 group">
+                                        <Image
+                                            src={preview!}
+                                            alt="Base Image"
+                                            fill
+                                            className="object-contain"
+                                        />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                                onClick={handleRemoveFile}
+                                                className="bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 backdrop-blur-sm transition-colors"
+                                            >
+                                                <X className="w-4 h-4" /> Trocar Base
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
+
+                                {/* Dropzone 2: Imagem de Estilo (Opcional) */}
+                                {!styleFile ? (
+                                    <div
+                                        className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-colors duration-300 ease-in-out cursor-pointer h-full flex flex-col justify-center ${isDraggingStyle ? "border-purple-500 bg-purple-500/5" : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
+                                            }`}
+                                        onDragOver={handleStyleDragOver}
+                                        onDragLeave={handleStyleDragLeave}
+                                        onDrop={handleStyleDrop}
+                                        onClick={() => styleFileInputRef.current?.click()}
+                                    >
+                                        <input
+                                            type="file"
+                                            ref={styleFileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={(e) => e.target.files && handleStyleFileSelect(e.target.files[0])}
+                                        />
+                                        <div className="flex flex-col items-center justify-center space-y-4">
+                                            <div className={`p-4 rounded-full ${isDraggingStyle ? "bg-purple-500 text-white" : "bg-white/5 text-white/40"} transition-colors`}>
+                                                <ImageIcon className="w-8 h-8" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h3 className="font-semibold text-lg text-white">Estilo / Personagem</h3>
+                                                <p className="text-sm text-white/50">
+                                                    Opcional para guiar a IA melhor.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-black border border-white/5 group">
+                                        <Image
+                                            src={stylePreview!}
+                                            alt="Style Image"
+                                            fill
+                                            className="object-contain"
+                                        />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                                onClick={handleRemoveStyleFile}
+                                                className="bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 backdrop-blur-sm transition-colors"
+                                            >
+                                                <X className="w-4 h-4" /> Trocar Estilo
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </motion.div>
-                        ) : (
+                        ) : null}
+                    </AnimatePresence>
+
+                    {/* Resultado / Geração (Oculta os dropzones quando gerando/gerado) */}
+                    <AnimatePresence>
+                        {(isGenerating || generatedImage) && (
                             <motion.div
                                 key="editor"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
                                 className="space-y-8 relative z-10"
                             >
-                                {/* Grid: Referência x Resultado */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-                                    {/* Imagem Original (Referência) */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="font-medium text-sm flex items-center gap-2 text-white/80">
-                                                <ImageIcon className="w-4 h-4 text-white/40" />
-                                                Imagem de Referência
-                                            </h3>
-                                            {!isGenerating && (
-                                                <button
-                                                    onClick={handleRemoveFile}
-                                                    className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
-                                                >
-                                                    <X className="w-3 h-3" /> Remover
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-black border border-white/5">
-                                            {preview && (
-                                                <Image
-                                                    src={preview}
-                                                    alt="Upload preview"
-                                                    fill
-                                                    sizes="(max-width: 1024px) 100vw, 50vw"
-                                                    className="object-contain"
-                                                />
+                                {/* Grid: Base & Estilo (Pequenos) x Resultado (Grande) */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Imagens Originais (Inputs) */}
+                                    <div className="space-y-4 lg:col-span-1">
+                                        <h3 className="font-medium text-sm flex items-center gap-2 text-white/80">
+                                            <ImageIcon className="w-4 h-4 text-white/40" />
+                                            Suas Imagens
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden bg-black border border-white/5">
+                                                {preview && (
+                                                    <Image
+                                                        src={preview}
+                                                        alt="Base preview"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                )}
+                                                <div className="absolute bottom-2 inset-x-0 text-center text-[10px] font-bold uppercase tracking-wider bg-black/50 backdrop-blur-md py-1">
+                                                    Base
+                                                </div>
+                                            </div>
+                                            {stylePreview ? (
+                                                <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden bg-black border border-white/5">
+                                                    <Image
+                                                        src={stylePreview}
+                                                        alt="Style preview"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                    <div className="absolute bottom-2 inset-x-0 text-center text-[10px] font-bold uppercase tracking-wider bg-black/50 backdrop-blur-md py-1 text-purple-300">
+                                                        Estilo
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden bg-black/50 border border-dashed border-white/10 flex items-center justify-center opacity-50">
+                                                    <span className="text-[10px] font-bold uppercase text-white/40 text-center px-2">Sem Estilo</span>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-
                                     {/* Imagem Gerada ou Placeholder */}
-                                    <div className="space-y-3">
+                                    <div className="space-y-4 lg:col-span-2">
                                         <div className="flex items-center justify-between">
                                             <h3 className="font-medium text-sm flex items-center gap-2 text-white/80">
                                                 <Sparkles className="w-4 h-4 text-[var(--brand)]" />
@@ -286,7 +452,6 @@ function GenerateContent() {
                                         </div>
                                     </div>
                                 </div>
-
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -295,9 +460,24 @@ function GenerateContent() {
                     <div className="space-y-6 mt-8 relative z-10">
                         <div className="bg-black/20 p-5 rounded-2xl border border-white/5 space-y-4">
                             <div className="space-y-3">
-                                <label htmlFor="prompt" className="text-sm font-medium text-white/90">
-                                    O que você deseja gerar? (Prompt)
-                                </label>
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="prompt" className="text-sm font-medium text-white/90">
+                                        O que você deseja gerar? (Prompt)
+                                    </label>
+                                    <button
+                                        onClick={enhancePrompt}
+                                        disabled={isEnhancing || isGenerating || !prompt}
+                                        className="text-xs font-semibold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
+                                        title="Usa a IA Gemini para melhorar e detalhar seu prompt"
+                                    >
+                                        {isEnhancing ? (
+                                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <Sparkles className="w-3 h-3 text-[var(--brand)]" />
+                                        )}
+                                        {isEnhancing ? "Magia da Nana..." : "Melhorar com a Nana (IA)"}
+                                    </button>
+                                </div>
                                 <textarea
                                     id="prompt"
                                     value={prompt}
@@ -310,8 +490,8 @@ function GenerateContent() {
 
                             {!generatedImage ? (
                                 <button
-                                    onClick={simulateGeneration}
-                                    disabled={isGenerating || !prompt || !file}
+                                    onClick={handleGenerate}
+                                    disabled={isGenerating || !prompt || !file || (balance !== null && balance <= 0)}
                                     className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2
                                         ${(isGenerating || !prompt || !file)
                                             ? "bg-white/5 text-white/30 cursor-not-allowed"

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Camera, Images, Upload, Settings, LogOut, LayoutDashboard, Users, CreditCard } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -44,13 +45,6 @@ const NAV_ITEMS = [
     { title: "Configurações", href: "/admin/settings", icon: Settings },
 ];
 
-const USER_DATA = {
-    name: "Skyleen",
-    email: "skyleen@example.com",
-    avatar:
-        "https://pbs.twimg.com/profile_images/1909615404789506048/MTqvRsjo_400x400.jpg",
-};
-
 function getBreadcrumbTitle(pathname: string) {
     const match = NAV_ITEMS.find((item) => item.href === pathname);
     return match?.title ?? "Admin";
@@ -58,6 +52,13 @@ function getBreadcrumbTitle(pathname: string) {
 
 export const AdminSidebarLayout = ({ children }: { children: React.ReactNode }) => {
     const pathname = usePathname();
+    const { data: session } = useSession();
+
+    const user = {
+        name: session?.user?.name || "Usuário",
+        email: session?.user?.email || "",
+        avatar: session?.user?.image || "",
+    };
 
     return (
         <SidebarProvider>
@@ -123,14 +124,16 @@ export const AdminSidebarLayout = ({ children }: { children: React.ReactNode }) 
                 <SidebarFooter>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton size="lg" tooltip={USER_DATA.name}>
+                            <SidebarMenuButton size="lg" tooltip={user.name}>
                                 <Avatar className="h-8 w-8 rounded-lg">
-                                    <AvatarImage src={USER_DATA.avatar} alt={USER_DATA.name} />
-                                    <AvatarFallback className="rounded-lg">SK</AvatarFallback>
+                                    <AvatarImage src={user.avatar} alt={user.name} />
+                                    <AvatarFallback className="rounded-lg">
+                                        {user.name.substring(0, 2).toUpperCase()}
+                                    </AvatarFallback>
                                 </Avatar>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate font-semibold">{USER_DATA.name}</span>
-                                    <span className="truncate text-xs text-muted-foreground">{USER_DATA.email}</span>
+                                    <span className="truncate font-semibold">{user.name}</span>
+                                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                                 </div>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

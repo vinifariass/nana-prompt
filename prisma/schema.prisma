@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────
@@ -17,12 +17,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -73,20 +73,26 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime?
+  password      String?
   image         String?
   role          Role      @default(USER)
   plan          Plan      @default(FREE)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  subscription Subscription?
-  credits      Credit?
-  generations  Generation[]
+  referralCode String   @unique @default(cuid())
+
+  accounts      Account[]
+  sessions      Session[]
+  subscription  Subscription?
+  credits       Credit?
+  generations   Generation[]
+  referralsGiven   Referral[] @relation("referrals_given")
+  referralReceived Referral?  @relation("referral_received")
 
   @@index([email])
   @@index([plan])
+  @@index([referralCode])
   @@map("users")
 }
 
@@ -178,6 +184,26 @@ model Generation {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, createdAt(sort: Desc)])
   @@index([status])
+  @@index([createdAt(sort: Desc)])
   @@map("generations")
+}
+
+// ─────────────────────────────────────────
+// REFERRAL: SISTEMA DE INDICAÇÃO
+// ─────────────────────────────────────────
+
+model Referral {
+  id            String   @id @default(cuid())
+  referrerId    String
+  referredId    String   @unique
+  creditAwarded Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  referrer User @relation("referrals_given", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred User @relation("referral_received", fields: [referredId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@map("referrals")
 }

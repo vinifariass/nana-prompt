@@ -3,17 +3,66 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
-import { Sparkles, ArrowRight, Camera, Check, ChevronLeft } from "lucide-react";
+import { Sparkles, ArrowRight, Camera, Check, ChevronLeft, Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+    const router = useRouter();
     const [step, setStep] = useState(1);
     const [selectedPlan, setSelectedPlan] = useState("free");
+
+    // Form states
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const plans = [
         { id: "free", name: "Free", price: "R$ 0", features: ["10 fotos HD", "Marca d'água"] },
         { id: "creator", name: "Creator", price: "R$ 29,90", features: ["100 fotos HD", "Sem marca", "Mais popular"] },
         { id: "pro", name: "Pro", price: "R$ 69,90", features: ["200 fotos 4K", "Suporte prioritário"] },
     ];
+
+    const handleRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+        setIsLoading(true);
+
+        try {
+            // 1. Criar a conta
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Erro ao criar conta");
+            }
+
+            // 2. Fazer login automático
+            const signInRes = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            });
+
+            if (signInRes?.error) {
+                throw new Error("Conta criada, mas erro ao logar. Tente logar manualmente.");
+            }
+
+            // 3. Ir para o próximo passo (escolher plano)
+            setStep(2);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-background flex">
@@ -87,7 +136,7 @@ export default function RegisterPage() {
                                     <p className="text-muted-foreground">Preencha seus dados para iniciar.</p>
                                 </div>
 
-                                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
+                                <form className="space-y-4" onSubmit={handleRegister}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                                         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                                             <label className="text-sm font-medium text-foreground">
@@ -96,7 +145,9 @@ export default function RegisterPage() {
                                             <input
                                                 required
                                                 type="text"
-                                                className="input-field"
+                                                className="input-field border-white/10 bg-white/5 text-white p-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
                                             />
                                         </div>
                                         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -106,7 +157,9 @@ export default function RegisterPage() {
                                             <input
                                                 required
                                                 type="email"
-                                                className="input-field"
+                                                className="input-field border-white/10 bg-white/5 text-white p-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
                                             />
                                         </div>
                                         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -116,17 +169,33 @@ export default function RegisterPage() {
                                             <input
                                                 required
                                                 type="password"
-                                                className="input-field"
+                                                className="input-field border-white/10 bg-white/5 text-white p-3 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                minLength={6}
                                             />
                                         </div>
                                     </div>
 
+                                    {error && (
+                                        <div className="text-red-500 text-sm font-medium mt-2">
+                                            {error}
+                                        </div>
+                                    )}
+
                                     <button
                                         type="submit"
-                                        className="btn-dark"
+                                        disabled={isLoading}
+                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl flex justify-center items-center gap-2 transition-all disabled:opacity-50"
                                         style={{ padding: "0.875rem", marginTop: "1rem" }}
                                     >
-                                        Continuar <ArrowRight className="w-4 h-4 ml-1" />
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" /> Processando...
+                                            </>
+                                        ) : (
+                                            <>Continuar <ArrowRight className="w-4 h-4 ml-1" /></>
+                                        )}
                                     </button>
                                 </form>
                                 <p className="text-center text-sm text-muted-foreground">

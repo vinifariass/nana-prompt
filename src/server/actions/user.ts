@@ -74,3 +74,24 @@ export async function deleteUser(userId: string) {
   revalidatePath("/admin/users");
   return { success: true };
 }
+
+export async function getUserBalance() {
+  const session = await requireSession();
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      plan: true,
+      credits: {
+        select: {
+          balance: true
+        }
+      }
+    }
+  });
+
+  return {
+    balance: user?.credits?.balance ?? 0,
+    plan: user?.plan ?? "FREE"
+  };
+}
