@@ -42,7 +42,7 @@ export async function upgradePlan(newPlan: "CREATOR" | "PRO", billingPeriod: "me
     line_items: [{ price: priceId, quantity: 1 }],
     metadata: { userId: session.user.id, plan: newPlan },
     customer_email: session.user.email ?? undefined,
-    success_url: `${baseUrl}/dashboard?checkout=success&plan=${newPlan}`,
+    success_url: `${baseUrl}/checkout/success?plan=${newPlan}`,
     cancel_url: `${baseUrl}/dashboard/billing`,
     allow_promotion_codes: true,
   });

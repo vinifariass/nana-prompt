@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         plan: planName.toUpperCase(),
       },
       customer_email: session.user.email ?? undefined,
-      success_url: `${baseUrl}/admin?checkout=success&plan=${planName}`,
+      success_url: `${baseUrl}/checkout/success?plan=${planName.toUpperCase()}`,
       cancel_url: `${baseUrl}/#pricing`,
       allow_promotion_codes: true,
     });
