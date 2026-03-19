@@ -88,3 +88,30 @@ export async function getUserCredits() {
 
   return credit ?? { balance: 0, totalUsed: 0, resetAt: new Date() };
 }
+
+type InvoiceStatus = "paid" | "open" | "void" | "uncollectible";
+
+function toInvoiceStatus(s: string | null): InvoiceStatus | null {
+  if (s === "paid" || s === "open" || s === "void" || s === "uncollectible") return s;
+  return null;
+}
+
+export async function getInvoices(stripeCustomerId: string) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return [];
+
+  const stripe = new Stripe(stripeKey);
+  const invoices = await stripe.invoices.list({
+    customer: stripeCustomerId,
+    limit: 10,
+  });
+
+  return invoices.data.map((inv) => ({
+    id: inv.id,
+    date: new Date(inv.created * 1000),
+    amount: inv.amount_paid / 100,
+    status: toInvoiceStatus(inv.status),
+    pdfUrl: inv.invoice_pdf ?? null,
+    hostedUrl: inv.hosted_invoice_url ?? null,
+  }));
+}

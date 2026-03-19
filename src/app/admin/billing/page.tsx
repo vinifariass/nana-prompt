@@ -4,6 +4,7 @@ import { requireSession } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { AdminSidebarLayout } from "@/components/AdminSidebarLayout";
 import { BillingClient } from "./BillingClient";
+import { getInvoices } from "@/server/actions/subscription";
 
 export default async function BillingPage() {
     const session = await requireSession();
@@ -19,6 +20,7 @@ export default async function BillingPage() {
                     currentPeriodEnd: true,
                     cancelAtPeriodEnd: true,
                     stripeSubscriptionId: true,
+                    stripeCustomerId: true,
                 },
             },
             credits: {
@@ -29,9 +31,12 @@ export default async function BillingPage() {
         },
     });
 
+    const stripeCustomerId = user?.subscription?.stripeCustomerId ?? null;
+    const invoices = stripeCustomerId ? await getInvoices(stripeCustomerId) : [];
+
     return (
         <AdminSidebarLayout>
-            <BillingClient user={user} />
+            <BillingClient user={user} invoices={invoices} />
         </AdminSidebarLayout>
     );
 }

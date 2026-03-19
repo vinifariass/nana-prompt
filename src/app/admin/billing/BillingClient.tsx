@@ -20,6 +20,35 @@ interface BillingUser {
 
 interface BillingClientProps {
     user: BillingUser | null;
+    invoices: Invoice[];
+}
+
+type InvoiceStatus = "paid" | "open" | "void" | "uncollectible" | null;
+
+interface Invoice {
+  id: string;
+  date: Date;
+  amount: number;
+  status: InvoiceStatus;
+  pdfUrl: string | null;
+  hostedUrl: string | null;
+}
+
+const INVOICE_STATUS: Record<string, { label: string; className: string }> = {
+  paid: { label: "Pago", className: "bg-green-500/15 text-green-400 border-green-500/20" },
+  open: { label: "Em aberto", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20" },
+  void: { label: "Cancelada", className: "bg-white/10 text-white/40 border-white/10" },
+  uncollectible: { label: "Não cobrada", className: "bg-red-500/15 text-red-400 border-red-500/20" },
+};
+
+function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
+  if (!status) return <span className="text-white/20 text-xs">—</span>;
+  const meta = INVOICE_STATUS[status] ?? { label: status, className: "bg-white/10 text-white/40 border-white/10" };
+  return (
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
+      {meta.label}
+    </span>
+  );
 }
 
 const PLAN_LIMITS: Record<string, number> = {
@@ -59,7 +88,7 @@ function formatDate(date: Date | null | undefined): string {
     });
 }
 
-export function BillingClient({ user }: BillingClientProps) {
+export function BillingClient({ user, invoices }: BillingClientProps) {
     const [cancelIsPending, startCancel] = useTransition();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -304,15 +333,65 @@ export function BillingClient({ user }: BillingClientProps) {
                         )}
                     </div>
 
-                    {/* Invoice History - placeholder */}
+                    {/* Invoice History */}
                     <div className="bg-[#12121a] border border-white/10 rounded-2xl p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">Histórico de Faturas</h2>
-                        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
-                            <CreditCard className="w-5 h-5 text-white/40 shrink-0" />
-                            <p className="text-sm text-white/50">
-                                Histórico de faturas disponível em breve via Stripe.
-                            </p>
-                        </div>
+
+                        {invoices.length === 0 ? (
+                            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                                <CreditCard className="w-5 h-5 text-white/40 shrink-0" />
+                                <p className="text-sm text-white/50">Nenhuma fatura encontrada.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-white/40 border-b border-white/10">
+                                            <th className="pb-3 font-medium">Data</th>
+                                            <th className="pb-3 font-medium">Valor</th>
+                                            <th className="pb-3 font-medium">Status</th>
+                                            <th className="pb-3 font-medium text-right">PDF</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {invoices.map((inv) => (
+                                            <tr key={inv.id} className="text-white/70">
+                                                <td className="py-3">
+                                                    {inv.date.toLocaleDateString("pt-BR", {
+                                                        day: "2-digit",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    })}
+                                                </td>
+                                                <td className="py-3">
+                                                    {inv.amount.toLocaleString("pt-BR", {
+                                                        style: "currency",
+                                                        currency: "BRL",
+                                                    })}
+                                                </td>
+                                                <td className="py-3">
+                                                    <InvoiceStatusBadge status={inv.status} />
+                                                </td>
+                                                <td className="py-3 text-right">
+                                                    {inv.pdfUrl ? (
+                                                        <a
+                                                            href={inv.pdfUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-white/40 hover:text-white underline-offset-2 hover:underline transition-colors"
+                                                        >
+                                                            Baixar
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-xs text-white/20">—</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
 
                 </div>
