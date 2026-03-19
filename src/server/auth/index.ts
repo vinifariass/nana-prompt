@@ -61,6 +61,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role ?? "USER";
         token.plan = (user as any).plan ?? "FREE";
+        token.banned = (user as any).banned ?? false;
       }
 
       // Quando session é atualizada via update() no client

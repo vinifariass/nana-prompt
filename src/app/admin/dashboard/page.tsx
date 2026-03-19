@@ -19,14 +19,14 @@ export default async function AdminDashboardPage() {
             title: "Receita Total",
             value: `R$ ${revenue.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
             icon: TrendingUp,
-            description: "Faturamento acumulado (simulado)",
+            description: "Faturamento mensal total",
             color: "text-blue-400",
         },
         {
             title: "Assinaturas Ativas",
             value: stats.activeSubscriptions,
             icon: CreditCard,
-            description: "Platnos Creator e Pro",
+            description: "Planos Creator e Pro",
             color: "text-purple-400",
         },
         {

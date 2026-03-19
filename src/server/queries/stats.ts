@@ -47,18 +47,17 @@ export async function getRevenueStats() {
 
   const PLAN_PRICES = {
     FREE: 0,
-    CREATOR: 19.9, // Exemplo: R$ 19,90
-    PRO: 49.9,    // Exemplo: R$ 49,90
+    CREATOR: 29.9,
+    PRO: 69.9,
   };
 
   const mrr = subscriptions.reduce((acc, sub) => {
     return acc + (PLAN_PRICES[sub.plan as keyof typeof PLAN_PRICES] || 0);
   }, 0);
 
-  // Simplificação: Total Revenue = MRR por enquanto (faturamento mensal base)
   return {
     mrr,
-    totalRevenue: mrr * 1.5, // Simulação
+    totalRevenue: mrr,
     planBreakdown: subscriptions.reduce((acc, sub) => {
       acc[sub.plan] = (acc[sub.plan] || 0) + 1;
       return acc;

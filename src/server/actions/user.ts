@@ -3,6 +3,7 @@
 import { requireSession, requireAdmin } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function updateProfile(formData: FormData) {
   const session = await requireSession();
@@ -26,7 +27,7 @@ export async function toggleUserBan(userId: string) {
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { role: true },
+    select: { role: true, banned: true },
   });
 
   if (!user) {
@@ -38,8 +39,49 @@ export async function toggleUserBan(userId: string) {
     return { error: "Não é possível banir um administrador" };
   }
 
-  // TODO: Implementar sistema de ban (campo status no User ou tabela separada)
-  // Por enquanto, retorna sucesso como placeholder
+  await db.user.update({
+    where: { id: userId },
+    data: { banned: !user.banned },
+  });
+
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+const PLAN_CREDITS: Record<string, number> = {
+  FREE: 10,
+  CREATOR: 100,
+  PRO: 200,
+};
+
+export async function changeUserPlan(userId: string, plan: "FREE" | "CREATOR" | "PRO") {
+  await requireAdmin();
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+
+  if (!user) {
+    return { error: "Usuário não encontrado" };
+  }
+
+  const newCredits = PLAN_CREDITS[plan] ?? 10;
+
+  await db.user.update({
+    where: { id: userId },
+    data: { plan },
+  });
+
+  await db.credit.upsert({
+    where: { userId },
+    update: { balance: newCredits },
+    create: {
+      userId,
+      balance: newCredits,
+      resetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+    },
+  });
 
   revalidatePath("/admin/users");
   return { success: true };
@@ -73,6 +115,22 @@ export async function deleteUser(userId: string) {
 
   revalidatePath("/admin/users");
   return { success: true };
+}
+
+export async function deleteOwnAccount() {
+  const session = await requireSession();
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (user?.role === "ADMIN") {
+    return { error: "Admins não podem deletar a própria conta aqui" };
+  }
+
+  await db.user.delete({ where: { id: session.user.id } });
+  redirect("/");
 }
 
 export async function getUserBalance() {

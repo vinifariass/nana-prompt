@@ -3,12 +3,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────
-// AUTENTICAÇÃO (NextAuth obrigatório)
+// AUTENTICAÇÃO (NextAuth)
+// Prefixo nana_ para não conflitar com as tabelas do taylor-ai-web
 // ─────────────────────────────────────────
 
 model Account {
@@ -29,7 +31,7 @@ model Account {
 
   @@unique([provider, providerAccountId])
   @@index([userId])
-  @@map("accounts")
+  @@map("nana_accounts")
 }
 
 model Session {
@@ -41,7 +43,7 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("sessions")
+  @@map("nana_sessions")
 }
 
 model VerificationToken {
@@ -50,11 +52,11 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map("verification_tokens")
+  @@map("nana_verification_tokens")
 }
 
 // ─────────────────────────────────────────
-// CORE: USERS
+// CORE: USERS (nana-prompt)
 // ─────────────────────────────────────────
 
 enum Role {
@@ -77,23 +79,24 @@ model User {
   image         String?
   role          Role      @default(USER)
   plan          Plan      @default(FREE)
+  banned        Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  referralCode String   @unique @default(cuid())
+  referralCode String @unique @default(cuid())
 
-  accounts      Account[]
-  sessions      Session[]
-  subscription  Subscription?
-  credits       Credit?
-  generations   Generation[]
+  accounts         Account[]
+  sessions         Session[]
+  subscription     Subscription?
+  credits          Credit?
+  generations      Generation[]
   referralsGiven   Referral[] @relation("referrals_given")
   referralReceived Referral?  @relation("referral_received")
 
   @@index([email])
   @@index([plan])
   @@index([referralCode])
-  @@map("users")
+  @@map("nana_users")
 }
 
 // ─────────────────────────────────────────
@@ -126,7 +129,7 @@ model Subscription {
 
   @@index([status])
   @@index([stripeCustomerId])
-  @@map("subscriptions")
+  @@map("nana_subscriptions")
 }
 
 // ─────────────────────────────────────────
@@ -144,7 +147,7 @@ model Credit {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("credits")
+  @@map("nana_credits")
 }
 
 // ─────────────────────────────────────────
@@ -187,7 +190,7 @@ model Generation {
   @@index([userId, createdAt(sort: Desc)])
   @@index([status])
   @@index([createdAt(sort: Desc)])
-  @@map("generations")
+  @@map("nana_generations")
 }
 
 // ─────────────────────────────────────────
@@ -205,5 +208,42 @@ model Referral {
   referred User @relation("referral_received", fields: [referredId], references: [id], onDelete: Cascade)
 
   @@index([referrerId])
-  @@map("referrals")
+  @@map("nana_referrals")
+}
+
+// ─────────────────────────────────────────
+// COMPARTILHADO COM TAYLOR-AI-WEB
+// Lê das mesmas tabelas — gerenciadas pelo taylor-ai-web
+// ─────────────────────────────────────────
+
+model Prompt {
+  id        String   @id @default(cuid())
+  title     String
+  image     String
+  prompt    String   @db.Text
+  type      String
+  category  String?
+  driveLink String?
+  price     Int      @default(150)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([type])
+  @@index([category])
+  @@map("Prompt")
+}
+
+model AIFilter {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  image     String
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("AIFilter")
 }

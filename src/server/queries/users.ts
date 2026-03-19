@@ -16,6 +16,7 @@ export async function getAllUsers(page = 1, limit = 20, planFilter?: Plan) {
       image: true,
       role: true,
       plan: true,
+      banned: true,
       createdAt: true,
       credits: {
         select: {

@@ -7,6 +7,7 @@ const protectedPaths = [
   "/upload",
   "/generate",
   "/explore",
+  "/dashboard",
 ];
 
 const adminPaths = ["/admin"];
@@ -17,10 +18,19 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = await getToken({ req: request });
 
-  // Se está numa rota de auth e JÁ está logado → redireciona pro admin
+  // If a banned user tries to access anything (except /banned), redirect to /banned
+  if (token && (token as any).banned === true) {
+    if (!pathname.startsWith("/banned")) {
+      return NextResponse.redirect(new URL("/banned", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Se está numa rota de auth e JÁ está logado → admin vai pro /admin, usuário comum pro /dashboard
   if (authPaths.some((path) => pathname.startsWith(path))) {
     if (token) {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      const dest = token.role === "ADMIN" ? "/admin" : "/dashboard";
+      return NextResponse.redirect(new URL(dest, request.url));
     }
     return NextResponse.next();
   }
@@ -37,7 +47,7 @@ export async function middleware(request: NextRequest) {
   // Se está numa rota admin e NÃO é ADMIN → redireciona pro dashboard de usuário
   if (adminPaths.some((path) => pathname.startsWith(path))) {
     if (token && token.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/generate", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
