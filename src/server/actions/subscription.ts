@@ -101,17 +101,22 @@ export async function getInvoices(stripeCustomerId: string) {
   if (!stripeKey) return [];
 
   const stripe = new Stripe(stripeKey);
-  const invoices = await stripe.invoices.list({
-    customer: stripeCustomerId,
-    limit: 10,
-  });
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: stripeCustomerId,
+      limit: 10,
+    });
 
-  return invoices.data.map((inv) => ({
-    id: inv.id,
-    date: new Date(inv.created * 1000),
-    amount: inv.amount_paid / 100,
-    status: toInvoiceStatus(inv.status),
-    pdfUrl: inv.invoice_pdf ?? null,
-    hostedUrl: inv.hosted_invoice_url ?? null,
-  }));
+    return invoices.data.map((inv) => ({
+      id: inv.id,
+      date: new Date(inv.created * 1000),
+      amount: inv.total / 100,
+      status: toInvoiceStatus(inv.status),
+      pdfUrl: inv.invoice_pdf ?? null,
+      hostedUrl: inv.hosted_invoice_url ?? null,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch invoices from Stripe:", error);
+    return [];
+  }
 }
