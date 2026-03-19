@@ -13,67 +13,79 @@ Prioridade: métodos de pagamento e página de sucesso primeiro; histórico de f
 ## Seção 1 — Métodos de Pagamento
 
 ### Objetivo
-Ampliar os métodos aceitos no Stripe Checkout de apenas cartão para cartão (crédito/débito), Pix e Boleto.
+Ampliar os métodos aceitos no Stripe Checkout de apenas cartão (crédito/débito) para cartão + Pix + Boleto.
 
-### Arquivo
-`src/app/api/checkout/route.ts`
+### Limitação técnica do Stripe
+**Pix e Boleto não são suportados em modo `subscription`** — o Stripe só aceita esses métodos para pagamentos avulsos (`mode: "payment"`). O checkout atual usa `mode: "subscription"`.
 
-### Mudança
-```ts
-// Antes
-payment_method_types: ["card"],
+### Solução
+Para assinaturas, o Stripe recomenda usar **Stripe Checkout com `payment_method_configuration`** ou habilitar Pix/Boleto como método de pagamento no Customer Portal para renovações. Porém, para manter a implementação simples e dentro do escopo desta fase:
 
-// Depois
-payment_method_types: ["card", "pix", "boleto"],
-```
+- **Cartão** (crédito e débito): já funciona — `"card"` cobre ambos no Stripe
+- **Pix e Boleto**: ficam fora do escopo desta fase. O Stripe não suporta esses métodos em `mode: "subscription"` diretamente
 
-### Detalhes
-- `"card"` cobre crédito e débito automaticamente no Stripe
-- `"pix"` exige moeda BRL (já configurado) e tem expiração padrão de 1h no Checkout
-- `"boleto"` exige moeda BRL e prazo padrão de 3 dias para vencimento
-- O Stripe renderiza as abas de método automaticamente no Checkout — nenhuma mudança de UI necessária no frontend
-- Sem necessidade de configuração adicional para assinaturas via Stripe Checkout
+> **Decisão de design:** manter `payment_method_types: ["card"]` por ora. Pix/Boleto requerem uma mudança arquitetural maior (ex: cobrar primeira mensalidade como `mode: "payment"` e criar assinatura separada via API), o que está fora do escopo desta melhoria de UX.
 
-### Restrições
-- Verificar no Stripe Dashboard que os métodos Pix e Boleto estão habilitados para a conta
+### Arquivos afetados
+- `src/app/api/checkout/route.ts` — manter como está para payment_method_types
+- `src/server/actions/subscription.ts` — manter como está
+
+> Esta seção documenta a limitação conhecida. Pix/Boleto devem ser revisitados na fase de gestão de assinatura.
 
 ---
 
 ## Seção 2 — Página de Sucesso `/checkout/success`
 
 ### Objetivo
-Substituir o redirect pós-checkout direto para `/admin` por uma página de confirmação dedicada que fecha o loop visual do pagamento.
+Substituir o redirect pós-checkout para uma página de confirmação dedicada que fecha o loop visual do pagamento.
 
 ### Arquivo novo
 `src/app/checkout/success/page.tsx`
 
 ### Comportamento
 1. Usuário conclui checkout no Stripe
-2. Stripe redireciona para `/checkout/success?plan=Creator` (ou `Pro`)
-3. Página exibe confirmação com: nome do plano contratado, número de créditos disponíveis, mensagem de boas-vindas
+2. Stripe redireciona para `/checkout/success?plan=CREATOR` (ou `PRO`)
+3. Página exibe confirmação com: nome do plano contratado, número de créditos do plano, mensagem de boas-vindas
 4. Após 5 segundos, redireciona automaticamente para `/dashboard`
 5. Botão "Ir ao Dashboard" disponível para quem não quiser esperar
 
 ### Dados exibidos
-- Nome do plano via query param `?plan=`
-- Créditos do plano (mapeamento local: Creator=100, Pro=200) — não depende do webhook ter chegado
-- Data do próximo ciclo (calculada localmente: hoje + 30 dias para mensal)
+- Nome do plano via query param `?plan=` (valores uppercase: `CREATOR`, `PRO`)
+- Créditos mapeados localmente: `{ CREATOR: 100, PRO: 200 }` — não depende do webhook ter chegado
 
-> **Nota sobre assincronicidade:** O webhook do Stripe pode chegar após o redirect. A página não deve tentar buscar dados do banco em tempo real — usa os dados do query param para exibição imediata e redireciona para o dashboard onde os dados reais estarão disponíveis.
+> **Convenção de casing:** padronizar em uppercase (`CREATOR`, `PRO`) em todos os lugares. O API route hoje envia title-case no `success_url` — isso será corrigido na atualização do redirect abaixo.
 
-### Redirect de sucesso no checkout
+### Redirects de sucesso — dois arquivos para atualizar
+
+**`src/app/api/checkout/route.ts`** (usado pelo PricingCard):
 ```ts
-// Antes (em /api/checkout/route.ts)
+// Antes
 success_url: `${baseUrl}/admin?checkout=success&plan=${planName}`,
 
 // Depois
-success_url: `${baseUrl}/checkout/success?plan=${planName}`,
+success_url: `${baseUrl}/checkout/success?plan=${planName.toUpperCase()}`,
 ```
+
+**`src/server/actions/subscription.ts`** (função `upgradePlan()`):
+```ts
+// Antes
+success_url: `${baseUrl}/dashboard?checkout=success&plan=${newPlan}`,
+
+// Depois
+success_url: `${baseUrl}/checkout/success?plan=${newPlan}`,
+```
+> `newPlan` já é uppercase pois o tipo é `"CREATOR" | "PRO"`.
+
+### Race condition com webhook
+O webhook do Stripe pode chegar após o redirect do usuário para o dashboard. Para mitigar:
+- A página de sucesso exibe dados locais (sem consulta ao banco) e redireciona para `/dashboard`
+- O dashboard receberá `?from=checkout` no futuro (fora do escopo desta fase) para exibir aviso "Seu plano está sendo ativado..."
+- Esta fase aceita a race condition como trade-off aceitável — o usuário vê a confirmação na página de sucesso
 
 ### Design visual
 - Fundo escuro consistente com o restante do app (`bg-[#0a0a0f]`)
 - Ícone de check animado (Framer Motion)
-- Card central com informações do plano
+- Card central com nome do plano e créditos
 - Contador regressivo de 5s visível
 - Botão CTA para dashboard
 
@@ -86,21 +98,58 @@ Substituir o placeholder "Histórico de faturas disponível em breve" por dados 
 
 ### Arquivos
 - `src/server/actions/subscription.ts` — nova action `getInvoices()`
-- `src/app/admin/billing/BillingClient.tsx` — renderiza a lista de faturas
-- `src/app/admin/billing/page.tsx` — busca faturas no servidor e passa para o client
+- `src/app/admin/billing/page.tsx` — busca faturas no servidor e passa como prop (adicionar `stripeCustomerId` ao select)
+- `src/app/admin/billing/BillingClient.tsx` — renderiza tabela de faturas
 
-### Server Action `getInvoices()`
+### Mudança no query da BillingPage
+O query atual não seleciona `stripeCustomerId`. Precisa ser adicionado:
+
 ```ts
-// Busca até 10 faturas mais recentes do cliente no Stripe
-// Retorna: id, amount_paid, status, created, hosted_invoice_url, invoice_pdf
+// Em billing/page.tsx, adicionar ao select da subscription:
+subscription: {
+  select: {
+    plan: true,
+    status: true,
+    currentPeriodEnd: true,
+    cancelAtPeriodEnd: true,
+    stripeSubscriptionId: true,
+    stripeCustomerId: true, // ← adicionar
+  },
+},
 ```
 
-### Fluxo de dados
-1. `BillingPage` (Server Component) chama `stripe.invoices.list({ customer: stripeCustomerId, limit: 10 })`
-2. Passa resultado como prop para `BillingClient`
-3. `BillingClient` renderiza tabela
+### Server Action `getInvoices()`
+Usar o padrão `getStripe()` já estabelecido no codebase (lazy init):
 
-### Tabela de faturas
+```ts
+export async function getInvoices() {
+  const session = await requireSession();
+  const subscription = await db.subscription.findUnique({
+    where: { userId: session.user.id },
+    select: { stripeCustomerId: true },
+  });
+  if (!subscription?.stripeCustomerId) return [];
+
+  const stripe = getStripe(); // lazy init, mesmo padrão do webhook
+  if (!stripe) return [];
+
+  const invoices = await stripe.invoices.list({
+    customer: subscription.stripeCustomerId,
+    limit: 10,
+  });
+
+  return invoices.data.map((inv) => ({
+    id: inv.id,
+    date: new Date(inv.created * 1000),
+    amount: inv.amount_paid / 100,
+    status: inv.status,
+    pdfUrl: inv.invoice_pdf,
+    hostedUrl: inv.hosted_invoice_url,
+  }));
+}
+```
+
+### Tabela de faturas no BillingClient
 Colunas: Data | Valor | Status | PDF
 
 Status mapeados:
@@ -110,41 +159,58 @@ Status mapeados:
 - `uncollectible` → "Não cobrada" (vermelho)
 
 ### Caso sem assinatura
-Se `stripeCustomerId` for null (usuário FREE sem histórico), manter mensagem vazia elegante no lugar da tabela.
+Se `stripeCustomerId` for null (usuário FREE sem histórico de pagamento), exibir mensagem vazia elegante no lugar da tabela: "Nenhuma fatura encontrada."
 
 ---
 
 ## Seção 4 — Alerta de Créditos Baixos
 
 ### Objetivo
-Avisar o usuário no dashboard quando seus créditos estiverem abaixo de 20% do limite do plano, incentivando upgrade.
+Avisar o usuário no dashboard quando seus créditos estiverem abaixo de 20% do limite do plano.
 
 ### Arquivo
 `src/app/dashboard/page.tsx`
 
-### Lógica
-```ts
-// Já calculado na página:
-const creditPercent = Math.min(100, Math.round((balance / maxCredits) * 100));
+### Mudança no query do Dashboard
+Para exibir "renova em X dias" para usuários PRO, o query precisa incluir a data de renovação:
 
-// Banner exibido se:
-if (creditPercent <= 20) { /* renderiza banner */ }
+```ts
+// Adicionar ao select do user:
+subscription: {
+  select: { currentPeriodEnd: true },
+},
 ```
 
-### Banner visual
+### Lógica do banner
+```ts
+// creditPercent já calculado na página
+if (creditPercent <= 20) {
+  if (plan === "PRO") {
+    // exibe: "Seus créditos renovam em X dias"
+    // calcula dias com base em subscription.currentPeriodEnd
+  } else {
+    // exibe banner de upgrade com link para /#pricing
+  }
+}
+```
+
+### Design do banner
 - Posição: entre os cards de stats e as ações rápidas
-- Cor: fundo âmbar/laranja com borda (`bg-amber-500/10 border-amber-500/20`)
-- Conteúdo: ícone de alerta + texto "Seus créditos estão acabando. Faça upgrade para continuar gerando." + link para `/#pricing`
-- Não exibido para usuários PRO com créditos baixos (já estão no plano máximo) — exibir mensagem alternativa: "Seus créditos renovam em X dias"
+- Cor: fundo âmbar (`bg-amber-500/10 border-amber-500/20 text-amber-400`)
+- Conteúdo para não-PRO: ícone de alerta + "Seus créditos estão acabando. Faça upgrade para continuar gerando." + link `/#pricing`
+- Conteúdo para PRO: "Seus créditos renovam em X dias."
+- Não exibido se `creditPercent > 20`
 
 ---
 
 ## Ordem de Implementação
 
-1. **Métodos de pagamento** — 1 linha, deploy imediato, maior impacto na conversão
-2. **Página de sucesso** — fecha o loop do checkout, nova rota isolada
-3. **Histórico de faturas** — depende do `stripeCustomerId` salvo no banco (já está)
-4. **Alerta de créditos** — última, lógica simples no dashboard existente
+1. **Página de sucesso** — nova rota isolada, sem dependências
+2. **Redirect de sucesso** — atualizar `success_url` nos dois arquivos de checkout
+3. **Histórico de faturas** — requer `stripeCustomerId` no query + nova action
+4. **Alerta de créditos** — requer `currentPeriodEnd` no query do dashboard
+
+> Métodos de pagamento (Pix/Boleto) removidos desta fase por incompatibilidade com `mode: "subscription"` do Stripe.
 
 ---
 
@@ -152,17 +218,18 @@ if (creditPercent <= 20) { /* renderiza banner */ }
 
 | Arquivo | Tipo de mudança |
 |---|---|
-| `src/app/api/checkout/route.ts` | Edição — métodos de pagamento + redirect de sucesso |
 | `src/app/checkout/success/page.tsx` | Novo arquivo |
-| `src/server/actions/subscription.ts` | Adição — `getInvoices()` |
-| `src/app/admin/billing/page.tsx` | Edição — busca faturas |
+| `src/app/api/checkout/route.ts` | Edição — success_url |
+| `src/server/actions/subscription.ts` | Edição — success_url em upgradePlan() + nova getInvoices() |
+| `src/app/admin/billing/page.tsx` | Edição — adicionar stripeCustomerId ao select |
 | `src/app/admin/billing/BillingClient.tsx` | Edição — tabela de faturas |
-| `src/app/dashboard/page.tsx` | Edição — banner de créditos baixos |
+| `src/app/dashboard/page.tsx` | Edição — adicionar subscription.currentPeriodEnd ao select + banner |
 
 ---
 
 ## Fora do Escopo
 
+- Pix e Boleto em assinaturas (requer mudança arquitetural — próxima fase)
 - Upgrade/downgrade de plano dentro do app (próxima fase)
 - Reativação de assinatura cancelada (próxima fase)
 - Gestão de método de pagamento (próxima fase)
