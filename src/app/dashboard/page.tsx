@@ -12,6 +12,7 @@ import {
   Star,
   Clock,
   LogOut,
+  AlertCircle,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +70,7 @@ export default async function DashboardPage() {
         image: true,
         plan: true,
         credits: { select: { balance: true } },
+        subscription: { select: { currentPeriodEnd: true } },
       },
     }),
     db.generation.findMany({
@@ -90,6 +92,12 @@ export default async function DashboardPage() {
   const maxCredits = PLAN_CREDITS[plan] ?? 10;
   const creditPercent = Math.min(100, Math.round((balance / maxCredits) * 100));
   const displayName = user?.name ?? session.user.email ?? "Usuário";
+
+  const periodEnd = user?.subscription?.currentPeriodEnd ?? null;
+  const renewalDays = periodEnd
+    ? Math.ceil((new Date(periodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+  const showCreditAlert = creditPercent <= 20;
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -188,6 +196,31 @@ export default async function DashboardPage() {
             <p className="text-xs text-white/30">{creditPercent}% disponível</p>
           </div>
         </div>
+
+        {/* Low credit alert */}
+        {showCreditAlert && (
+          <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            {plan === "PRO" ? (
+              <p className="text-sm text-amber-300">
+                Seus créditos estão quase no limite.{" "}
+                {renewalDays !== null && renewalDays > 0
+                  ? `Renovam em ${renewalDays} ${renewalDays === 1 ? "dia" : "dias"}.`
+                  : "Renovam em breve."}
+              </p>
+            ) : (
+              <p className="text-sm text-amber-300">
+                Seus créditos estão acabando.{" "}
+                <a
+                  href="/#pricing"
+                  className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors"
+                >
+                  Faça upgrade para continuar gerando.
+                </a>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Quick links */}
         <div className="space-y-3">
