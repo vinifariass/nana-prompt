@@ -1,3 +1,5 @@
+// Generated with: stripe-webhooks skill
+// https://github.com/hookdeck/webhook-skills
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { db } from "@/server/db";
@@ -51,11 +53,19 @@ export async function POST(req: Request) {
         const userId = session.metadata?.userId;
         const plan = (session.metadata?.plan as Plan) ?? "CREATOR";
 
-
         if (!userId) break;
 
+        // Retrieve actual subscription period dates from Stripe
+        const stripeSub = session.subscription
+          ? await stripe.subscriptions.retrieve(session.subscription as string)
+          : null;
+
         const now = new Date();
-        const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        const firstItem = stripeSub?.items?.data?.[0];
+        const periodStart = firstItem ? new Date(firstItem.current_period_start * 1000) : now;
+        const periodEnd = firstItem
+          ? new Date(firstItem.current_period_end * 1000)
+          : new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
         await db.$transaction(async (tx) => {
           const user = await tx.user.update({
@@ -75,7 +85,7 @@ export async function POST(req: Request) {
               status: "ACTIVE",
               stripeCustomerId: session.customer as string,
               stripeSubscriptionId: session.subscription as string,
-              currentPeriodStart: now,
+              currentPeriodStart: periodStart,
               currentPeriodEnd: periodEnd,
             },
             update: {
@@ -83,7 +93,7 @@ export async function POST(req: Request) {
               status: "ACTIVE",
               stripeCustomerId: session.customer as string,
               stripeSubscriptionId: session.subscription as string,
-              currentPeriodStart: now,
+              currentPeriodStart: periodStart,
               currentPeriodEnd: periodEnd,
               cancelAtPeriodEnd: false,
             },
@@ -105,6 +115,55 @@ export async function POST(req: Request) {
         break;
       }
 
+      case "customer.subscription.updated": {
+        const sub = event.data.object;
+        const customerId = sub.customer as string;
+        const newPlan = (sub.metadata?.plan as Plan) ?? null;
+
+        const subscription = await db.subscription.findUnique({
+          where: { stripeCustomerId: customerId },
+          select: { userId: true },
+        });
+
+        if (!subscription) break;
+
+        const subFirstItem = sub.items?.data?.[0];
+        const subNow = new Date();
+        const periodStart = subFirstItem ? new Date(subFirstItem.current_period_start * 1000) : subNow;
+        const periodEnd = subFirstItem
+          ? new Date(subFirstItem.current_period_end * 1000)
+          : new Date(subNow.getFullYear(), subNow.getMonth() + 1, subNow.getDate());
+
+        await db.$transaction(async (tx) => {
+          await tx.subscription.update({
+            where: { stripeCustomerId: customerId },
+            data: {
+              status: sub.status === "active" ? "ACTIVE" : "PAST_DUE",
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
+              cancelAtPeriodEnd: sub.cancel_at_period_end,
+              ...(newPlan ? { plan: newPlan } : {}),
+            },
+          });
+
+          if (newPlan) {
+            await tx.user.update({
+              where: { id: subscription.userId },
+              data: { plan: newPlan },
+            });
+
+            await tx.credit.update({
+              where: { userId: subscription.userId },
+              data: {
+                balance: PLAN_CREDITS[newPlan],
+                resetAt: periodEnd,
+              },
+            });
+          }
+        });
+        break;
+      }
+
       case "invoice.payment_succeeded": {
         const invoice = event.data.object;
         const customerId = invoice.customer as string;
@@ -116,8 +175,11 @@ export async function POST(req: Request) {
 
         if (!subscription) break;
 
-        const now = new Date();
-        const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        // Use actual period end from the invoice lines
+        const lineItem = invoice.lines?.data?.[0];
+        const periodEnd = lineItem?.period?.end
+          ? new Date(lineItem.period.end * 1000)
+          : new Date(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate());
 
         await db.credit.upsert({
           where: { userId: subscription.userId },
@@ -168,7 +230,7 @@ export async function POST(req: Request) {
         const invoice = event.data.object;
         const customerId = invoice.customer as string;
 
-        await db.subscription.update({
+        await db.subscription.updateMany({
           where: { stripeCustomerId: customerId },
           data: { status: "PAST_DUE" },
         });

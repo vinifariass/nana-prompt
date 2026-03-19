@@ -19,7 +19,7 @@ export function StylesGallery() {
                 </div>
 
                 <div className="grid-4">
-                    {styles.map((style, index) => (
+                    {styles.slice(0, 4).map((style, index) => (
                         <motion.div key={index}
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
@@ -76,8 +76,8 @@ export function StylesGallery() {
                 </div>
 
                 <div style={{ textAlign: "center", marginTop: "3rem" }}>
-                    <Link href="#" className="btn-secondary" style={{ padding: "0.875rem 2rem" }}>
-                        Ver Todos os Estilos <ArrowRight style={{ width: 18, height: 18 }} />
+                    <Link href="/explore" className="btn-secondary" style={{ padding: "0.875rem 2rem" }}>
+                        Ver Todos os {styles.length} Estilos <ArrowRight style={{ width: 18, height: 18 }} />
                     </Link>
                 </div>
             </div>

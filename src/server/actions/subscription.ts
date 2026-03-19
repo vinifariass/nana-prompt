@@ -3,6 +3,8 @@
 import { requireSession } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import Stripe from "stripe";
 import type { Plan } from "@prisma/client";
 
 const PLAN_CREDITS: Record<Plan, number> = {
@@ -11,64 +13,42 @@ const PLAN_CREDITS: Record<Plan, number> = {
   PRO: 200,
 };
 
-export async function upgradePlan(newPlan: Plan) {
+export async function upgradePlan(newPlan: "CREATOR" | "PRO", billingPeriod: "mensal" | "anual" = "mensal") {
   const session = await requireSession();
 
-  if (newPlan === "FREE") {
-    return { error: "Não é possível fazer downgrade para Free por aqui" };
-  }
+  const PRICE_IDS: Record<string, Record<string, string>> = {
+    CREATOR: {
+      mensal: process.env.STRIPE_PRICE_CREATOR_MENSAL ?? "",
+      anual: process.env.STRIPE_PRICE_CREATOR_ANUAL ?? "",
+    },
+    PRO: {
+      mensal: process.env.STRIPE_PRICE_PRO_MENSAL ?? "",
+      anual: process.env.STRIPE_PRICE_PRO_ANUAL ?? "",
+    },
+  };
 
-  // TODO: Integrar com Stripe Checkout Session
-  // Por enquanto, atualiza diretamente no banco (placeholder)
+  const priceId = PRICE_IDS[newPlan]?.[billingPeriod];
+  if (!priceId) return { error: "Plano ou período inválido" };
 
-  const now = new Date();
-  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return { error: "Stripe não configurado" };
 
-  await db.$transaction(async (tx) => {
-    // Atualizar plano do usuário
-    await tx.user.update({
-      where: { id: session.user.id },
-      data: { plan: newPlan },
-    });
+  const stripe = new Stripe(stripeKey);
+  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
-    // Criar ou atualizar subscription
-    await tx.subscription.upsert({
-      where: { userId: session.user.id },
-      create: {
-        userId: session.user.id,
-        plan: newPlan,
-        status: "ACTIVE",
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-      },
-      update: {
-        plan: newPlan,
-        status: "ACTIVE",
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        cancelAtPeriodEnd: false,
-      },
-    });
-
-    // Atualizar créditos para o novo plano
-    await tx.credit.upsert({
-      where: { userId: session.user.id },
-      create: {
-        userId: session.user.id,
-        balance: PLAN_CREDITS[newPlan],
-        resetAt: periodEnd,
-      },
-      update: {
-        balance: PLAN_CREDITS[newPlan],
-        resetAt: periodEnd,
-      },
-    });
+  const checkoutSession = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    payment_method_types: ["card"],
+    line_items: [{ price: priceId, quantity: 1 }],
+    metadata: { userId: session.user.id, plan: newPlan },
+    customer_email: session.user.email ?? undefined,
+    success_url: `${baseUrl}/dashboard?checkout=success&plan=${newPlan}`,
+    cancel_url: `${baseUrl}/dashboard/billing`,
+    allow_promotion_codes: true,
   });
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/billing");
-
-  return { success: true, plan: newPlan };
+  if (!checkoutSession.url) return { error: "Erro ao criar sessão de pagamento" };
+  redirect(checkoutSession.url);
 }
 
 export async function cancelSubscription() {
@@ -79,18 +59,23 @@ export async function cancelSubscription() {
   });
 
   if (!subscription) {
-    return { error: "Nenhuma assinatura ativa encontrada" };
+    return { error: "Nenhuma assinatura ativa" };
   }
 
-  // TODO: Cancelar no Stripe via stripe.subscriptions.update({ cancel_at_period_end: true })
+  if (subscription.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+  }
 
   await db.subscription.update({
     where: { userId: session.user.id },
     data: { cancelAtPeriodEnd: true },
   });
 
+  revalidatePath("/dashboard/billing");
   revalidatePath("/admin/billing");
-
   return { success: true };
 }
 

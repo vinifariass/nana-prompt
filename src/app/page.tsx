@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   Camera,
   Check,
+  ChevronDown,
   Sparkles,
   Zap,
   Shield,
@@ -30,14 +32,7 @@ import { Footer } from "@/components/Footer";
 
 /* ───────── DATA ───────── */
 
-const styles = [
-  { name: "Elden Ring (Realista)", description: "Dark fantasy RPG, textures ultra-detalhadas", samples: 1234, image: "/generated/elden_ring_real.png" },
-  { name: "Jujutsu Kaisen (Realista)", description: "Dark urban fantasy, estilo live-action incrível", samples: 892, image: "/generated/jjk_real.png" },
-  { name: "Hell's Paradise (Realista)", description: "Kunoichi ninja e iluminação cinematográfica", samples: 2103, image: "/generated/hells_paradise_real.png" },
-  { name: "Jujutsu Kaisen (Anime)", description: "2D detalhado em estilo Nana Anime, super vibrante", samples: 756, image: "/generated/jjk_gojo.png" },
-  { name: "The Matrix (Anime)", description: "Sci-fi cyberpunk tenso com estética de graphic novel", samples: 1432, image: "/generated/matrix_neo.png" },
-  { name: "Demons Slayer (Anime)", description: "Ilustração anime de alta qualidade com katana flamejante", samples: 941, image: "/generated/demon_slayer.png" },
-];
+type StyleItem = { id: string; title: string; image: string; type: string; category: string | null };
 
 const testimonials = [
   { name: "Ana Silva", role: "Designer Gráfica", content: "Incrível! Consegui fotos profissionais para meu portfólio sem gastar com fotógrafo. A qualidade é surpreendente!", rating: 5, generated: 47, avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&q=80" },
@@ -70,6 +65,28 @@ const steps = [
 
 export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [styles, setStyles] = useState<StyleItem[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { data: session } = useSession();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/prompts?limit=4")
+      .then((r) => r.json())
+      .then((data) => Array.isArray(data) && setStyles(data))
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -116,14 +133,70 @@ export default function Home() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <Link href="/login"
-              className="hidden sm:inline-flex text-sm font-medium text-[var(--text-secondary)] hover:text-white px-4 py-2 transition-colors"
-              style={{ textDecoration: "none" }}>
-              Entrar
-            </Link>
-            <Link href="/login" className="btn-primary hover:opacity-90 transition-opacity" style={{ fontSize: "0.8125rem", padding: "0.5rem 1.25rem" }}>
-              Começar Grátis
-            </Link>
+            {session ? (
+              <div ref={dropdownRef} style={{ position: "relative" }}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 999, padding: "0.375rem 0.75rem 0.375rem 0.375rem", cursor: "pointer", transition: "background 0.2s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                >
+                  {session.user?.image ? (
+                    <Image src={session.user.image} alt="avatar" width={28} height={28} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700, color: "#0a0a0f" }}>
+                      {session.user?.name?.[0]?.toUpperCase() ?? session.user?.email?.[0]?.toUpperCase() ?? "U"}
+                    </div>
+                  )}
+                  <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-primary)", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {session.user?.name?.split(" ")[0] ?? "Conta"}
+                  </span>
+                  <ChevronDown style={{ width: 14, height: 14, color: "var(--text-muted)", transform: dropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                </button>
+
+                {dropdownOpen && (
+                  <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", minWidth: 180, background: "#12121a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "0.5rem", zIndex: 100, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+                    <div style={{ padding: "0.5rem 0.75rem 0.75rem", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: "0.5rem" }}>
+                      <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "white", margin: 0 }}>{session.user?.name ?? "Usuário"}</p>
+                      <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", margin: 0 }}>{session.user?.email}</p>
+                    </div>
+                    {[
+                      { label: (session.user as any)?.role === "ADMIN" ? "Painel Admin" : "Meu Dashboard", href: (session.user as any)?.role === "ADMIN" ? "/admin" : "/dashboard" },
+                      { label: "Gerar Foto", href: "/generate" },
+                      { label: "Explorar", href: "/explore" },
+                    ].map(item => (
+                      <Link key={item.href} href={item.href} onClick={() => setDropdownOpen(false)}
+                        style={{ display: "block", padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "rgba(255,255,255,0.7)", textDecoration: "none", borderRadius: 8, transition: "background 0.15s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: "0.5rem", paddingTop: "0.5rem" }}>
+                      <button onClick={() => signOut({ callbackUrl: "/" })}
+                        style={{ display: "block", width: "100%", textAlign: "left", padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "#f87171", background: "none", border: "none", borderRadius: 8, cursor: "pointer", transition: "background 0.15s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.08)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      >
+                        Sair
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link href="/login"
+                  className="hidden sm:inline-flex text-sm font-medium text-[var(--text-secondary)] hover:text-white px-4 py-2 transition-colors"
+                  style={{ textDecoration: "none" }}>
+                  Entrar
+                </Link>
+                <Link href="/login" className="btn-primary hover:opacity-90 transition-opacity" style={{ fontSize: "0.8125rem", padding: "0.5rem 1.25rem" }}>
+                  Começar Grátis
+                </Link>
+              </>
+            )}
             <button className="sm:hidden text-white ml-2 hover:bg-white/10 p-1.5 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -425,48 +498,47 @@ export default function Home() {
           </div>
 
           <div className="grid-4">
-            {styles.map((style, index) => (
-              <motion.div key={index}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <div className="glass-card group" style={{
-                  position: "relative", overflow: "hidden", borderRadius: 20,
-                  aspectRatio: "3/4", cursor: "pointer",
-                }}>
-                  <div style={{ position: "absolute", inset: 0 }}>
-                    <Image src={style.image} alt={style.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                  </div>
-
-                  {/* Hover overlay with mobile fallback */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent sm:opacity-0 sm:group-hover:opacity-100 opacity-100 transition-all duration-300" />
-
-                  <div className="absolute bottom-0 left-0 right-0 p-6 sm:translate-y-4 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 translate-y-0 opacity-100 transition-all duration-300">
-                    <h3 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>{style.name}</h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.7)", marginBottom: "0.75rem" }}>{style.description}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--brand)" }}>
-                      <Users style={{ width: 14, height: 14 }} />
-                      {style.samples.toLocaleString()} fotos geradas
-                    </div>
-                  </div>
-
-                  <div style={{
-                    position: "absolute", top: 12, right: 12,
-                    background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)",
-                    borderRadius: 9999, padding: "0.25rem 0.75rem",
-                    fontSize: "0.6875rem", fontWeight: 500, color: "var(--text-secondary)",
+            {styles.length === 0
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="glass-card" style={{ borderRadius: 20, aspectRatio: "3/4", background: "rgba(255,255,255,0.03)", animation: "pulse 2s infinite" }} />
+                ))
+              : styles.map((style, index) => (
+                <motion.div key={style.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <Link href="/explore" className="glass-card group" style={{
+                    display: "block", position: "relative", overflow: "hidden", borderRadius: 20,
+                    aspectRatio: "3/4", cursor: "pointer", textDecoration: "none",
                   }}>
-                    {style.name}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                    <div style={{ position: "absolute", inset: 0 }}>
+                      <Image src={style.image} alt={style.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    </div>
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent sm:opacity-0 sm:group-hover:opacity-100 opacity-100 transition-all duration-300" />
+
+                    <div className="absolute bottom-0 left-0 right-0 p-6 sm:translate-y-4 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 translate-y-0 opacity-100 transition-all duration-300">
+                      <h3 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.25rem" }}>{style.title}</h3>
+                      <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.7)" }}>{style.category ?? style.type}</p>
+                    </div>
+
+                    <div style={{
+                      position: "absolute", top: 12, right: 12,
+                      background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)",
+                      borderRadius: 9999, padding: "0.25rem 0.75rem",
+                      fontSize: "0.6875rem", fontWeight: 500, color: "var(--text-secondary)",
+                    }}>
+                      {style.type}
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
           </div>
 
           <div style={{ textAlign: "center", marginTop: "3rem" }}>
-            <Link href="#" className="btn-secondary" style={{ padding: "0.875rem 2rem" }}>
+            <Link href="/explore" className="btn-secondary" style={{ padding: "0.875rem 2rem" }}>
               Ver Todos os Estilos <ArrowRight style={{ width: 18, height: 18 }} />
             </Link>
           </div>

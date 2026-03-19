@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PaymentModal } from "./PaymentModal";
+import { useSession } from "next-auth/react";
 
 const plans = [
     {
@@ -15,7 +15,6 @@ const plans = [
         period: "mês",
         periodAnual: "ano",
         description: "Ideal para testar sem compromisso",
-        detailedDesc: "Comece gratuitamente e explore os recursos básicos da plataforma.",
         features: [
             "10 fotos HD por mês",
             "Marca d'água",
@@ -32,7 +31,6 @@ const plans = [
         period: "mês",
         periodAnual: "ano",
         description: "Perfeito para Instagram e TikTok",
-        detailedDesc: "Ideal para quem produz conteúdo e precisa de fotos profissionais regularmente.",
         features: [
             "100 fotos HD por mês",
             "Sem marca d'água",
@@ -50,7 +48,6 @@ const plans = [
         period: "mês",
         periodAnual: "ano",
         description: "Ideal para LinkedIn e portfólio",
-        detailedDesc: "Todos os recursos para profissionais que exigem qualidade máxima.",
         features: [
             "200 fotos 4K por mês",
             "Todos os estilos",
@@ -66,12 +63,38 @@ const plans = [
 
 export default function PricingCard() {
     const [billingPeriod, setBillingPeriod] = useState<"mensal" | "anual">("mensal");
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [selectedPlanDetails, setSelectedPlanDetails] = useState({ name: "Pro", price: "R$ 69" });
+    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+    const { data: session } = useSession();
 
-    const handleOpenPayment = (planName: string, price: string) => {
-        setSelectedPlanDetails({ name: planName, price });
-        setIsPaymentModalOpen(true);
+    const handleCheckout = async (planName: string) => {
+        // Se não está logado, manda pro login primeiro
+        if (!session?.user) {
+            window.location.href = `/login?callbackUrl=${encodeURIComponent("/#pricing")}`;
+            return;
+        }
+
+        setLoadingPlan(planName);
+
+        try {
+            const res = await fetch("/api/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ planName, billingPeriod }),
+            });
+
+            const data = await res.json();
+
+            if (data.url) {
+                // Redireciona para o Stripe Checkout
+                window.location.href = data.url;
+            } else {
+                alert(data.error ?? "Erro ao iniciar checkout. Tente novamente.");
+                setLoadingPlan(null);
+            }
+        } catch {
+            alert("Erro de conexão. Tente novamente.");
+            setLoadingPlan(null);
+        }
     };
 
     return (
@@ -85,11 +108,8 @@ export default function PricingCard() {
                         Comece grátis hoje mesmo, com a opção de mudar de plano ou cancelar a qualquer momento.
                     </p>
 
-                    {/* Morphic Styled Toggle */}
                     <div className="flex items-center justify-center gap-3 text-sm font-medium">
-                        <span className={cn("transition-colors", billingPeriod === "mensal" ? "text-white/50" : "text-white/50")}>
-                            Mensal
-                        </span>
+                        <span className="text-white/50">Mensal</span>
                         <button
                             onClick={() => setBillingPeriod(billingPeriod === "mensal" ? "anual" : "mensal")}
                             className="relative inline-flex h-6 w-11 items-center rounded-full bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black"
@@ -102,13 +122,10 @@ export default function PricingCard() {
                                 )}
                             />
                         </button>
-                        <span className={cn("transition-colors", billingPeriod === "anual" ? "text-white" : "text-white")}>
-                            Anual
-                        </span>
+                        <span className="text-white/50">Anual</span>
                     </div>
                 </div>
 
-                {/* morphic container */}
                 <div className="text-white/50 text-sm mb-4">Ideal para criadores e empresas</div>
                 <div className="grid grid-cols-1 md:grid-cols-3 rounded-2xl md:rounded-[24px] bg-[#0d0d0d] border border-white/10 overflow-hidden">
                     {plans.map((plan, index) => (
@@ -160,27 +177,33 @@ export default function PricingCard() {
 
                             {plan.priceMensal === "R$ 0" ? (
                                 <Link
-                                    href="/login"
+                                    href="/cadastro"
                                     className={cn(
                                         "w-full flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors mb-8",
-                                        plan.popular
-                                            ? "bg-brand text-[#0a0a0f] hover:bg-brand/90"
-                                            : "bg-white/5 text-white hover:bg-white/10"
+                                        "bg-white/5 text-white hover:bg-white/10"
                                     )}
                                 >
                                     {plan.cta}
                                 </Link>
                             ) : (
                                 <button
-                                    onClick={() => handleOpenPayment(plan.name, billingPeriod === "mensal" ? plan.priceMensal : plan.priceAnual)}
+                                    onClick={() => handleCheckout(plan.name)}
+                                    disabled={loadingPlan === plan.name}
                                     className={cn(
-                                        "w-full flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors mb-8 cursor-pointer",
+                                        "w-full flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors mb-8 cursor-pointer disabled:opacity-70 disabled:cursor-wait",
                                         plan.popular
                                             ? "bg-brand text-[#0a0a0f] hover:bg-brand/90"
                                             : "bg-white/5 text-white hover:bg-white/10"
                                     )}
                                 >
-                                    {plan.cta}
+                                    {loadingPlan === plan.name ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Redirecionando...
+                                        </>
+                                    ) : (
+                                        plan.cta
+                                    )}
                                 </button>
                             )}
 
@@ -196,13 +219,6 @@ export default function PricingCard() {
                     ))}
                 </div>
             </div>
-
-            <PaymentModal
-                isOpen={isPaymentModalOpen}
-                onClose={() => setIsPaymentModalOpen(false)}
-                planName={selectedPlanDetails.name}
-                price={selectedPlanDetails.price}
-            />
         </section>
     );
 }

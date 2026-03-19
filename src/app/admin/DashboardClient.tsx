@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronDown, Calendar, ArrowUpRight, User, Image as ImageIcon, Phone, DollarSign } from "lucide-react";
 import { motion, Variants } from "motion/react";
 
@@ -23,9 +23,46 @@ interface DashboardClientProps {
     recentSubscriptions: any[];
 }
 
+function filterByDate<T extends { createdAt?: Date | string; updatedAt?: Date | string }>(
+    items: T[],
+    dateRange: string,
+    dateField: "createdAt" | "updatedAt" = "createdAt"
+): T[] {
+    const now = new Date();
+    let cutoff: Date;
+
+    if (dateRange === "Hoje") {
+        cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    } else if (dateRange === "Últimos 7 Dias") {
+        cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (dateRange === "Este Ano") {
+        cutoff = new Date(now.getFullYear(), 0, 1);
+    } else {
+        // Default: Últimos 30 Dias
+        cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    return items.filter((item) => {
+        const raw = item[dateField];
+        if (!raw) return true;
+        const date = new Date(raw);
+        return date >= cutoff;
+    });
+}
+
 export function AdminDashboardClient({ stats, recentGenerations, recentSubscriptions }: DashboardClientProps) {
     const [activeTab, setActiveTab] = useState<"geracoes" | "assinaturas">("geracoes");
     const [dateRange, setDateRange] = useState("Últimos 30 Dias");
+
+    const filteredGenerations = useMemo(
+        () => filterByDate(recentGenerations, dateRange, "createdAt"),
+        [recentGenerations, dateRange]
+    );
+
+    const filteredSubscriptions = useMemo(
+        () => filterByDate(recentSubscriptions, dateRange, "updatedAt"),
+        [recentSubscriptions, dateRange]
+    );
 
     return (
         <div className="w-full min-h-[calc(100vh-4rem)] p-4 md:p-8 relative">
@@ -132,7 +169,13 @@ export function AdminDashboardClient({ stats, recentGenerations, recentSubscript
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {activeTab === "geracoes" ? (
-                                    recentGenerations.map((gen) => (
+                                    filteredGenerations.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="py-8 text-center text-sm text-white/40">
+                                                Nenhuma geração neste período.
+                                            </td>
+                                        </tr>
+                                    ) : filteredGenerations.map((gen) => (
                                         <tr key={gen.id} className="hover:bg-white/5 transition-colors cursor-pointer">
                                             <td className="py-4">
                                                 <div className="flex items-center gap-3">
@@ -150,7 +193,13 @@ export function AdminDashboardClient({ stats, recentGenerations, recentSubscript
                                         </tr>
                                     ))
                                 ) : (
-                                    recentSubscriptions.map((sub) => (
+                                    filteredSubscriptions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="py-8 text-center text-sm text-white/40">
+                                                Nenhuma assinatura neste período.
+                                            </td>
+                                        </tr>
+                                    ) : filteredSubscriptions.map((sub) => (
                                         <tr key={sub.id} className="hover:bg-white/5 transition-colors cursor-pointer">
                                             <td className="py-4">
                                                 <div className="flex items-center gap-3">
